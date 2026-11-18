@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>OpenEvo · Interactive 3D Assembly</title>
-<meta name="description" content="Interactive 3D model of the OpenEvo open-source turbidostat (Type D Mk4), built from the team's real STL files, assembly manual, bill of materials and wiring checklist. Watch it get built step by step.">
-<meta property="og:title" content="OpenEvo · Interactive 3D Assembly">
-<meta property="og:description" content="Watch the OpenEvo open-source turbidostat get built from scratch, step by step, in 3D.">
+<title>OpenEvo · 3D Assembly Manual</title>
+<meta name="description" content="The OpenEVO Type D Mk4 Assembly Manual in 3D: every step, built from the repository's STL files, Bill of Materials and Wiring Checklist.">
+<meta property="og:title" content="OpenEvo · 3D Assembly Manual">
+<meta property="og:description" content="OpenEVO Type D Mk4 Assembly Manual, step by step in 3D.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,15 +27,14 @@
         <path d="M13.6 25.5h12.8l1.9 3.3a1.6 1.6 0 0 1-1.4 2.4H13.1a1.6 1.6 0 0 1-1.4-2.4z" fill="#fff" opacity=".9"/></svg>
     </div>
     <div>
-      <h1>OpenEvo <span>Interactive Assembly</span></h1>
-      <p>Open-source turbidostat · Type D Mk4</p>
+      <h1>OpenEvo <span>3D Assembly Manual</span></h1>
+      <p>OpenEVO Type D Mk4</p>
     </div>
   </header>
 
   <div class="toolbar" role="toolbar" aria-label="View options">
     <button data-tool="labels" class="on" title="Part labels (L)"><svg viewBox="0 0 24 24"><path d="M3 12V5a2 2 0 0 1 2-2h7l9 9-9 9-9-9z"/><circle cx="8" cy="8" r="1.6"/></svg><span>Labels</span></button>
     <button data-tool="xray" title="X-ray printed parts (X)"><svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span>X-ray</span></button>
-    <button data-tool="explode" title="Exploded view (E)"><svg viewBox="0 0 24 24"><path d="M12 3v5M12 16v5M3 12h5M16 12h5M5.6 5.6l3.5 3.5M14.9 14.9l3.5 3.5M5.6 18.4l3.5-3.5M14.9 9.1l3.5-3.5"/></svg><span>Explode</span></button>
     <button data-tool="wires" class="on" title="Show wiring (W)"><svg viewBox="0 0 24 24"><path d="M4 7c4 0 4 10 8 10s4-10 8-10"/><path d="M4 17c4 0 4-10 8-10s4 10 8 10" opacity=".55"/></svg><span>Wires</span></button>
     <button data-tool="rotate" title="Auto-rotate"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg><span>Orbit</span></button>
     <button data-tool="camera" title="Re-centre camera (R)"><svg viewBox="0 0 24 24"><path d="M3 9V5a2 2 0 0 1 2-2h4M15 3h4a2 2 0 0 1 2 2v4M21 15v4a2 2 0 0 1-2 2h-4M9 21H5a2 2 0 0 1-2-2v-4"/><circle cx="12" cy="12" r="3"/></svg><span>Focus</span></button>
@@ -44,27 +43,27 @@
   </div>
 
   <div id="readout" class="readout" hidden>
-    <div class="ro-head"><span class="dot"></span>Live run · OD<sub>940</sub></div>
+    <div class="ro-head"><span class="dot"></span>INCUBATE · OD940</div>
     <canvas id="chart" width="560" height="220"></canvas>
     <div class="ro-stats">
       <div><b id="roOD">0.000</b><span>OD940</span></div>
-      <div><b id="roT">30.0°</b><span>Media</span></div>
-      <div><b id="roPump">idle</b><span>Pumps</span></div>
-      <div><b id="roCycle">1</b><span>Cycle</span></div>
+      <div><b id="roT">30.0°</b><span>Media Temp</span></div>
+      <div><b id="roPump">0 h</b><span>UPTIME</span></div>
+      <div><b id="roCycle">37883</b><span>IR</span></div>
     </div>
   </div>
 
   <aside id="panel" aria-label="Assembly guide">
     <button class="sheet-handle" aria-label="Expand or collapse the guide"><span></span></button>
     <nav class="tabs" role="tablist">
-      <button role="tab" data-tab="steps" class="active">Build steps</button>
-      <button role="tab" data-tab="parts">Parts &amp; cost</button>
-      <button role="tab" data-tab="wiring">Wiring</button>
+      <button role="tab" data-tab="steps" class="active">Assembly Manual</button>
+      <button role="tab" data-tab="parts">Material Sheet</button>
+      <button role="tab" data-tab="wiring">Wire List</button>
       <button role="tab" data-tab="about">About</button>
     </nav>
     <section class="tab active" data-tab="steps">
       <article id="stepCard" class="card"></article>
-      <div class="list-head">All steps</div>
+      <div class="list-head">Contents</div>
       <ol id="stepList" class="step-list"></ol>
     </section>
     <section class="tab" data-tab="parts">
@@ -73,41 +72,41 @@
         <div><span>First robot</span><b id="costTotal">$0</b></div>
         <div><span>Each additional</span><b id="costSecond">$0</b></div>
       </div>
-      <h3>3D-printed modules</h3>
+      <h3>3D Printed Modules (STL Files)</h3>
       <div id="moduleGrid" class="module-grid"></div>
-      <h3>Bill of materials</h3>
-      <p class="muted small">From the team's <i>2026 Updated Bill of Materials</i>. Click a row to open the vendor listing.</p>
+      <h3>2026 Updated Bill of Materials</h3>
+      <p class="muted small">Rows from <i>2026 Updated Bill of Materials.xlsx</i> in the repository. Click a row to open its link.</p>
       <table id="bomTable" class="data"></table>
       <h3>Tools</h3>
       <table id="equipTable" class="data"></table>
     </section>
     <section class="tab" data-tab="wiring">
-      <p class="muted small">All 71 wires from the team's <i>Wiring Checklist</i> (22 AWG silicone, ~14.7 m). Click a row to find that wire in the model.</p>
-      <input id="wireFilter" class="search" type="search" placeholder="Filter: e.g. Arduino 22, yellow, multiplexer…">
+      <p class="muted small">Rows from <i>Wiring Checklist.xlsx</i> in the repository. Click a row to find that wire in the model.</p>
+      <input id="wireFilter" class="search" type="search" placeholder="Filter the Wire List">
       <table id="wireTable" class="data wires"></table>
     </section>
     <section class="tab" data-tab="about">
       <div class="about">
-        <h2>OpenEvo</h2>
-        <p><b>OpenEvo</b> is a low-cost, fully open-source turbidostat for continuous culture and directed evolution. A browser interface (or the stand-alone LCD menu) runs it from an Arduino Mega 2560. It monitors optical density in real time, swaps in fresh media at a set OD threshold, controls temperature and stirring, and drives programmable LEDs as a selection stimulus.</p>
-        <p>The first unit costs about <b>$300</b> in parts, and a second about <b>$200</b>. The authors report that an undergraduate with no electronics background built a working unit with minimal supervision.</p>
+        <h2>OpenEvo — Open Evolution Turbidostat</h2>
+        <p class="muted small">From the repository README:</p>
+        <blockquote>OpenEvo is an open-source turbidostat for continuous-culture directed evolution. It runs as a browser-based interface on any computer connected to an Arduino Mega 2560, with real-time OD monitoring, automated media changes, and optional one-click global remote access via Cloudflare Tunnel — no cloud account or router configuration needed.</blockquote>
+        <p><b>Authors:</b> Zane Chan, Pin-Che Huang, Phillip Kyriakakis · <b>License:</b> MIT</p>
         <h3>About this model</h3>
-        <p>All 26 printed modules are the team's actual STL files, placed using their real geometry: the 5 mm rod holes, matching screw patterns and stacking bosses. The step sequence, part list, pin assignments and wire colours come from the Type D Mk4 assembly manual, the bill of materials and the wiring checklist. Electronic boards, pumps and glassware are approximate procedural models.</p>
+        <p>The steps and their text are the <i>OpenEVO Type D Mk4 Assembly Manual</i>. The printed parts are the repository's STL files. Part names come from the manual and the Bill of Materials, wire colours, lengths and ends from the Wiring Checklist, and LCD screens from the firmware (<i>easyEVOTypeD.ino</i>).</p>
         <h3>Sources</h3>
         <ul class="links">
-          <li><a href="https://github.com/Binomica-Labs/OpenEVO" target="_blank" rel="noopener">GitHub · Binomica-Labs/OpenEVO</a> (STL files, BOM, wiring checklist, assembly manual, firmware)</li>
-          <li><a href="https://www.biorxiv.org/content/10.64898/2026.07.06.735356v1" target="_blank" rel="noopener">bioRxiv preprint · OpenEvo: An Open-Source Platform for Automated Evolution and Analysis</a></li>
-          <li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC13370392/" target="_blank" rel="noopener">Full text on PubMed Central</a></li>
+          <li><a href="https://github.com/Binomica-Labs/OpenEVO" target="_blank" rel="noopener">GitHub · Binomica-Labs/OpenEVO</a></li>
           <li><a href="https://doi.org/10.5281/zenodo.20694532" target="_blank" rel="noopener">Zenodo archive</a> (assembly manual, interface manual)</li>
+          <li><a href="https://www.biorxiv.org/content/10.64898/2026.07.06.735356v1" target="_blank" rel="noopener">bioRxiv preprint · OpenEvo: An Open-Source Platform for Automated Evolution and Analysis</a></li>
         </ul>
         <h3>Keyboard</h3>
         <table class="keys">
           <tr><td><kbd>Space</kbd></td><td>Play / pause</td></tr>
           <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Previous / next step</td></tr>
-          <tr><td><kbd>L</kbd> <kbd>X</kbd> <kbd>E</kbd> <kbd>W</kbd></td><td>Labels · X-ray · Explode · Wires</td></tr>
+          <tr><td><kbd>L</kbd> <kbd>X</kbd> <kbd>W</kbd></td><td>Labels · X-ray · Wires</td></tr>
           <tr><td><kbd>R</kbd> <kbd>F</kbd></td><td>Re-centre camera · Fullscreen</td></tr>
         </table>
-        <p class="credit">Interactive 3D assembly by <b>Amanuel Geremew</b>.<br>OpenEvo hardware &amp; software are released under the MIT License by their authors.</p>
+        <p class="credit">3D model by <b>Amanuel Geremew</b>.</p>
       </div>
     </section>
   </aside>
@@ -137,7 +136,7 @@
     <div class="ld-box">
       <div class="logo big"><svg viewBox="0 0 40 40"><rect x="2" y="2" width="36" height="36" rx="10" fill="#0d9488"/><path d="M15 9h10M17 9v8.5L11.5 28a3 3 0 0 0 2.6 4.5h11.8a3 3 0 0 0 2.6-4.5L23 17.5V9" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <h2>OpenEvo</h2>
-      <p id="ldText">Loading the 26 printed modules…</p>
+      <p id="ldText">Loading the STL files…</p>
       <div class="ld-bar"><div id="ldFill"></div></div>
     </div>
   </div>

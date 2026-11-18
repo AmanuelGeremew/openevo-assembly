@@ -1,53 +1,54 @@
-# OpenEvo · Interactive 3D Assembly
+# OpenEvo · 3D Assembly Manual
 
-An interactive, rotatable 3D model of the **OpenEvo** open-source turbidostat (Type D Mk4) that builds itself step by step, from 3D-printing the modules to the first continuous-culture run.
+The *OpenEVO Type D Mk4 Assembly Manual*, step by step, as a rotatable 3D model that builds itself from the first rod to the first INCUBATE run.
 
 **Live:** https://amanuelgeremew.github.io/openevo-assembly/
 
 ## What's in it
 
-- **The team's real geometry.** All 26 printed modules (A–Z) are the STL files from [Binomica-Labs/OpenEVO](https://github.com/Binomica-Labs/OpenEVO). Their placement comes from the geometry itself: the 5 mm rod holes (135 mm apart), the matching M3/M2.5 screw patterns of Modules E and F, the Arduino Mega's mounting holes in Module E, and the stacking bosses of Modules D → L → Q.
-- **46 build steps in 10 chapters** that follow the *OpenEVO Type D Mk4 Assembly Manual* (hardware steps 1–118 and testing steps 1–21). Each step has the manual's step numbers, a summary, tips and warnings, and the parts and wires it adds.
-- **Every wire** from the team's *Wiring Checklist*, routed between the correct pins in the checklist colours. Wires grow along their path as they're connected.
-- **Bill of materials** from *2026 Updated Bill of Materials.xlsx* ($306.76 for the first robot, $198.73 for each additional one), with vendor links.
-- **A live run simulation:** stirring vortex, IR optical-density beam, LED six-pack, LCD screens from the manual, and a turbidostat OD sawtooth with pump dilutions.
+- **Every step of the manual, in order.** The cover, *Before You Start: Material Preparation*, Hardware Mounting steps 1–118 and Function Testing and Initializing steps 1–21: 145 steps. Each step shows the manual's own text (extracted verbatim from the PDF into `js/manual.js`) and moves only the parts and wires that step names: sub-assemblies are built on the bench and carried to the robot as one piece, and the robot is flipped upside down or onto its side where the manual says so.
+- **The repository's geometry.** All printed modules are the STL files from [Binomica-Labs/OpenEVO](https://github.com/Binomica-Labs/OpenEVO), placed from their own geometry: the 5 mm rod holes 135 mm apart, the screw patterns of Modules E and F, the Arduino Mega's holes in Module E, and the stacking bosses of Modules D → L → Q.
+- **Every wire from the Wiring Checklist** in its colour, length and end types, between the pins the manual names. Routes follow the manual and its photos: the button wires through the slot in Module A, bundles beneath the robot that rise into Module E over its left cutout, the heater and fan wires between the standoffs under the boards. No wire passes through a printed part or a component (checked by a voxel and bounding-box scan in `debug/`).
+- **Names from the sources.** Part names come from the manual and the Bill of Materials, LCD screens from the firmware (`easyEVOTypeD.ino`) and the manual's photos.
+- **Material Sheet and Wire List** tabs from *2026 Updated Bill of Materials.xlsx* and *Wiring Checklist.xlsx*.
 
 ## Controls
 
 | | |
 |---|---|
 | Drag / scroll / right-drag | orbit / zoom / pan |
-| Space | play / pause (continuous) |
-| ← → or the step buttons | click through one step at a time |
-| Click a part | name, purpose, BOM line, and the step where it's added |
-| L · X · E · W · R · F | labels · X-ray · explode · wires · re-centre · fullscreen |
+| Space | play / pause |
+| ← → or the step buttons | one step at a time |
+| Click a part or wire | its name, Bill of Materials line, and the step that adds it |
+| L · X · W · R · F | labels · X-ray · wires · re-centre · fullscreen |
 
-Deep links work for every step, e.g. `#stirBase`, `#wireFront`, `#run`.
+Every step has a deep link: `#h12` is Hardware Mounting step 12, `#t9` is Function Testing step 9, `#pre1` is *3D Printed Modules*.
 
 ## Hosting it anywhere
 
-It's a static site with no build step and no external dependencies (Three.js r170 is vendored in `vendor/`). Copy this folder to any static host (GitHub Pages, Netlify, an S3 bucket, a lab server), or run it locally:
+A static site with no build step; Three.js r170 is vendored in `vendor/`. Copy this folder to any static host, or run it locally:
 
 ```bash
 python -m http.server 8000
 ```
 
-then open http://localhost:8000. It has to be served over HTTP, because ES modules don't load from `file://`.
+then open http://localhost:8000 (ES modules need HTTP, not `file://`).
 
 ## Files
 
-- `index.html`, `css/style.css`: the page and UI
-- `js/assembly.js`: places the STL modules and the procedural components
-- `js/builders.js`: procedural boards, pumps, fan, glassware and so on
-- `js/wires.js`: every wire with its route and pin endpoints
-- `js/tubes.js`: tubing, bottles and media lines
-- `js/steps.js`: the step-by-step text, chapters and camera views
-- `js/timeline.js`: compiles the steps into keyframes, and the whole scene is a function of time
-- `js/data.js`: BOM and wire list generated from the team's spreadsheets
-- `models/A.stl … Z.stl`: the printed modules
+- `index.html`, `css/style.css`: page and UI
+- `js/manual.js`: the manual's text, verbatim
+- `js/steps.js`: one entry per manual step: text, camera, and the actions on parts and wires
+- `js/timeline.js`: compiles the steps into pose segments; parts ride on the part they are built onto
+- `js/assembly.js`: places the STL modules and the components
+- `js/builders.js`: boards, pumps, fan, glassware and other components
+- `js/wires.js`: every Wiring Checklist wire with its route and pins
+- `js/labware.js`: testing labware and the loose prepared wires
+- `js/data.js`: Bill of Materials and Wiring Checklist rows
+- `models/*.stl`: the printed modules
 
 ## Credits
 
-OpenEvo hardware, firmware and documentation: the OpenEvo authors / Binomica Labs, MIT License (see `LICENSE`). Paper: *OpenEvo: An Open-Source Platform for Automated Evolution and Analysis* ([bioRxiv](https://www.biorxiv.org/content/10.64898/2026.07.06.735356v1), [PMC](https://pmc.ncbi.nlm.nih.gov/articles/PMC13370392/)).
+OpenEvo hardware, firmware and documentation: Zane Chan, Pin-Che Huang, Phillip Kyriakakis (Binomica Labs), MIT License (see `LICENSE`).
 
-Interactive 3D assembly by Amanuel Geremew.
+3D model by Amanuel Geremew.
