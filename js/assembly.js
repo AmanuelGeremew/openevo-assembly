@@ -45,15 +45,15 @@ export const STL = {
   I: { file: 'Module I - OEVO Reactor Cap Mold Left.stl', manual: 'Module I (reactor cap mold)', rot: [['x', -90]], from: [99, -8, 0], to: [215, 48, -15] },
   J: { file: 'Module J - OEVO Reactor Cap Mold Right.stl', manual: 'Module J (reactor cap mold)', rot: [['x', -90]], from: [99, -4.7, 0], to: [215, 48, -15] },
   K: { file: 'Module K - OEVO Reactor Cap Mold Top.stl', manual: 'Module K (reactor cap mold top)', rot: [['x', 90]], from: [99, -72, 0], to: [215, 97, -15] },
-  T: { file: 'Module T - OEVO Bottle Top Part 1.stl', manual: 'Module T', rot: [['x', -90]], from: [-78, 76, 0], to: [-218, 0, 125] },
-  U: { file: 'Module U - OEVO Media Bottle Top Part 2.stl', manual: 'Module U (Bottle Top Model 2)', rot: [['x', -90]], from: [-78, -71, 0], to: [-218, 2, 125] },
-  W: { file: 'Module W - OEVO Media Bottle Top Part 4.stl', manual: 'Module W', rot: [['x', -90]], from: [-78, -32.2, 0], to: [-218, 0, 125] },
-  V: { file: 'Module V - OEVO Media Bottle Top Part 3.stl', manual: 'Module V (Bottle Top Model 3)', rot: [['x', 90]], from: [-78, 6, 0], to: [-218, 27, 125] },
-  X: { file: 'Module X - OEVO Media Light Blocker Part 1.stl', manual: 'Module X', rot: [['x', -90]], from: [133, -107, 0], to: [300, 0, -330] },
-  Y: { file: 'Module Y - OEVO Media Light Blocker Part 2.stl', manual: 'Module Y', rot: [['x', -90]], from: [-61, -173.5, 0], to: [300, 128, -330] },
-  Z: { file: 'Module Z - OEVO Media Light Blocker Part 3.stl', manual: 'Module Z', rot: [['x', -90]], from: [-61, -181, 0], to: [300, 128, -330] },
-  R: { file: 'Module R - OEVO top light blocker.stl', manual: 'Module R (Reactor Top Side)', rot: [['x', -90]], from: [4.4, 3.45, 0], to: [215, 0, -250] },
-  S: { file: 'Module S - OEVO Top light blocker.stl', manual: 'Module S', rot: [['x', -90]], from: [11, -12, 0], to: [380, 0, -250] },
+  T: { file: 'Module T - OEVO Bottle Top Part 1.stl', manual: 'Module T', rot: [['x', -90]], from: [-78, 76, 0], to: [205, 0, 105] },
+  U: { file: 'Module U - OEVO Media Bottle Top Part 2.stl', manual: 'Module U (Bottle Top Model 2)', rot: [['x', -90]], from: [-78, -71, 0], to: [205, 2, 105] },
+  W: { file: 'Module W - OEVO Media Bottle Top Part 4.stl', manual: 'Module W', rot: [['x', -90]], from: [-78, -32.2, 0], to: [205, 0, 105] },
+  V: { file: 'Module V - OEVO Media Bottle Top Part 3.stl', manual: 'Module V (Bottle Top Model 3)', rot: [['x', 90]], from: [-78, 6, 0], to: [205, 27, 105] },
+  X: { file: 'Module X - OEVO Media Light Blocker Part 1.stl', manual: 'Module X', rot: [['x', -90]], from: [133, -107, 0], to: [290, 0, -160] },
+  Y: { file: 'Module Y - OEVO Media Light Blocker Part 2.stl', manual: 'Module Y', rot: [['x', -90]], from: [-61, -173.5, 0], to: [290, 128, -160] },
+  Z: { file: 'Module Z - OEVO Media Light Blocker Part 3.stl', manual: 'Module Z', rot: [['x', -90]], from: [-61, -181, 0], to: [290, 128, -160] },
+  R: { file: 'Module R - OEVO top light blocker.stl', manual: 'Module R (Reactor Top Side)', rot: [['x', -90]], from: [4.4, 3.45, 0], to: [175, 0, -60] },
+  S: { file: 'Module S - OEVO Top light blocker.stl', manual: 'Module S', rot: [['x', -90]], from: [11, -12, 0], to: [300, 0, -10] },
 };
 const STL_FRAME = { A: 'robot', B: 'robot', C: 'robot', D: 'robot', E: 'robot', F: 'modE', G: 'robot', L: 'robot', Q: 'robot', N: 'robot', O: 'robot', P: 'robot', M: null, H: null, I: 'modH', J: 'modH', K: 'modH', T: null, U: 'modT', W: 'modT', V: 'modT', X: null, Y: 'modX', Z: 'modX', R: null, S: null };
 
@@ -124,6 +124,7 @@ export async function buildAssembly(root, onProgress = () => {}, opts = {}) {
   [['btnUp', M.btnBlack, 'BLACK (UP)'], ['btnSel', M.btnBlue, 'BLUE (SEL)'], ['btnDown', M.btnBlack, 'BLACK (DOWN)']].forEach(([id, mat, lbl], i) => {
     add(id, inPrint('B', B.pushButton(mat), [-253.9, btnY[i], 0], [['y', 180]]), { name: `Waterproof Button ${lbl}`, bom: 'Waterproof Button', kind: 'electronic', frame: 'modB' });
     add(id + 'Nut', inPrint('B', B.buttonNut(), [-253.9, btnY[i], 3.3], [['y', 180]]), { name: 'button nut', bom: 'Waterproof Button', kind: 'hardware', frame: 'modB' });
+    add(id + 'Washer', inPrint('B', B.buttonWasher(), [-253.9, btnY[i], 5.0], [['y', 180]]), { name: 'button washer', bom: 'Waterproof Button', kind: 'hardware', frame: id });
   });
   add('lcd', inPrint('B', B.lcd2004(), [-185.3, -69, 10], [['y', 180]]), { name: 'LCD', bom: 'Serial IIC I2C TWI 2004 204 20*4 English & Japanese Character LCD Module Display Panel Scr', kind: 'electronic', frame: 'modB' });
   add('sdTape', inPrint('B', B.tapeStrip(42, 22), [-160, -80, 17.3], [['x', 90]]), { name: '42mm strip of Double-sided Tape', bom: 'Double Sided Tape Heavy Duty', kind: 'consumable', frame: 'lcd' });
@@ -134,9 +135,15 @@ export async function buildAssembly(root, onProgress = () => {}, opts = {}) {
   add('fan', inPrint('D', B.stirFan(), [-20, 0.5, 3], [['x', 90]]), { name: '40mm PC fan', bom: 'PC Fan 40x20mm', kind: 'electronic', frame: 'modD' });
   add('fanMag', inPrint('D', B.fanMagnets(), [-20, 0.5, 3 + 19.05], [['x', 90]]), { name: 'two Neodymium Magnets 12x6x3mm', bom: 'Neodymium Magnets 12x6x3mm', kind: 'hardware', frame: 'fan' });
   add('heater', inPrint('D', B.heaterPlate(), [-20, -5, 29.5], [['x', 90]]), { name: 'heater module', bom: 'PTC Heating Plate 80C', kind: 'electronic', frame: 'modD' });
-  add('thermHeater', inPrint('D', B.thermistorUnit(), [-20, -28.5, 28.3], [['x', 90]]), { name: 'thermistor unit', bom: 'Precision 10K Ohm NTC Thermistor', kind: 'electronic', frame: 'modD' });
+  add('thermHeater', inPrint('D', B.thermHeaderUnit(), [-20, -28.5, 28.3], [['x', 90]]), { name: '3-pin male header (heater thermistor)', bom: 'Male Pin Header Strips', kind: 'electronic', frame: 'modD' });
+  add('thermNTC', inPrint('D', B.ntcHeaterUnit(), [-20, -28.5, 28.3], [['x', 90]]), { name: 'NTC thermistor (heater thermistor)', bom: 'Precision 10K Ohm NTC Thermistor', kind: 'electronic', frame: 'thermHeater' });
+  add('thermRes', inPrint('D', B.resistorHeaterUnit(), [-20, -28.5, 28.3], [['x', 90]]), { name: '10K Precision Resistor (heater thermistor)', bom: 'Precision 10K Ohm Resistor', kind: 'electronic', frame: 'thermHeater' });
   [[-30, -22, 30.5, 1], [-10, -22, 30.5, 2], [-20, -23, 31, 3]].forEach(([x, y, z, s], i) => add('sealD' + i, inPrint('D', B.sealantBlob(2.6, s), [x, y, z], [['x', 90]]), { name: 'silicone sealant', bom: 'Black High Temp Silicone Sealant', kind: 'consumable', frame: 'modD' }));
-  add('thermoNeedle', at(B.thermoNeedle(), TX, CAP_Y + 21.5 - 101.6 + 3, TZ), { name: 'thermistor needle', bom: 'Dispensing Needle 14ga 4"', kind: 'electronic', frame: 'cap' });
+  const NB = [TX, CAP_Y + 21.5 - 101.6 + 3, TZ];
+  add('thermoNeedle', at(B.needleBody(), ...NB), { name: '14-gauge 4" luer-lock dispensing needle (thermometer needle)', bom: 'Dispensing Needle 14ga 4"', kind: 'hardware', frame: 'cap' });
+  add('needleHdr', at(B.needleHeaderUnit(), ...NB), { name: '3-pin male header (thermometer needle)', bom: 'Male Pin Header Strips', kind: 'electronic', frame: 'thermoNeedle' });
+  add('needleNTC', at(B.ntcNeedleUnit(), ...NB), { name: 'NTC thermistor (thermometer needle)', bom: 'Precision 10K Ohm NTC Thermistor', kind: 'electronic', frame: 'needleHdr' });
+  add('needleRes', at(B.resistorNeedleUnit(), ...NB), { name: '10K Precision Resistor (thermometer needle)', bom: 'Precision 10K Ohm Resistor', kind: 'electronic', frame: 'needleHdr' });
 
   // ---- pumps in Module G (seen from the LCD: M1, M2, M3, M4 left to right)
   [-38.1, -13.4, 11.9, 36.9].forEach((x, i) => add('pump' + i, at(B.pump(), x, 6.5, ZG - 4), { name: `pump motor M${i + 1}`, bom: 'DC Motor Peristaltic Pump', kind: 'electronic', frame: 'modG' }));
@@ -155,6 +162,7 @@ export async function buildAssembly(root, onProgress = () => {}, opts = {}) {
   { const c = B.coinCell(); c.quaternion.setFromEuler(new THREE.Euler(0, 0, -90 * d2r)); c.position.set(-25.3 + 3.4, E_FLOOR + 8.9 - 1.8, -183.35 - 1.5); add('coin', c, { name: 'CR1220 battery', bom: 'CR1220 Lithium Battery', kind: 'electronic', frame: 'rtc' }); }
   add('mux', at(B.tca9548a(), -47.05, SO_TOP, -180.05, 0), { name: 'I2C Multiplexer', bom: 'TCA9548A I2C Multiplexer Module', kind: 'electronic', frame: 'modE' });
   add('ledCtl', at(B.tlc5947(), -46.35, SO_TOP, -134.3, -90), { name: 'LED Controller Board', bom: 'TLC5947 module 12-Bit 24-Channel PWM LED Driver Module', kind: 'electronic', frame: 'modE' });
+  add('res249', at(B.resistor249Unit(), -46.35, SO_TOP, -134.3, -90), { name: '2.49 Kohms Precision Resistor', bom: 'Precision 2.49K Ohm Resistor', kind: 'electronic', frame: 'ledCtl' });
   add('stirCtl', at(B.drv8871(), 7.25, SO_TOP, -175.9, 0), { name: 'DRV8871 Motor Controller Board', bom: 'Adafruit DRV8871 DC Motor Controller', kind: 'electronic', frame: 'modE' });
   add('heaterCtl', at(B.l298n(), 45.8, SO_TOP, -187.4, 0), { name: 'Heater Controller Board', bom: 'L298N Motor Controller', kind: 'electronic', frame: 'modE' });
   add('jumperENA', at(B.jumperCap(), 38.17, SO_TOP + 1.6 + 2.5, -167.8), { name: 'jumper short (ENA)', bom: '2.54mm Jumper Caps', kind: 'hardware', frame: 'heaterCtl' });
@@ -190,6 +198,18 @@ export async function buildAssembly(root, onProgress = () => {}, opts = {}) {
   [-405, -378].forEach((x, k) => { const m = B.magnet(); inPrint('M', m, [x, 28.5, -1.6], [['z', 90]]); add(`magMl${k}`, m, { name: 'loose magnet', bom: 'Neodymium Magnets 12x6x3mm', kind: 'hardware', frame: 'modM' }); });
   add('topLabel', inPrint('M', B.topLabel(), [-391.5, 41.2, 10], []), { name: 'clear tape labelled TOP', kind: 'consumable', frame: 'modM' });
   add('tsl', inPrint('N', B.tsl2591(), [-391.5, -13.5, 2.2], [['y', 180]]), { name: 'TSL2591 module', bom: 'TSL2591 Light Sensor', kind: 'electronic', frame: 'modN' });
+  // pin headers and terminals that the manual solders on: separate parts riding on their boards once soldered
+  const splitStage = (boardId, stage, id, meta) => {
+    const b = parts[boardId].obj, g = new THREE.Group(); g.name = meta.name; const kids = b.children.filter(o => o.userData.stage === stage);
+    kids.forEach(k => { delete k.userData.stage; g.add(k); }); g.position.copy(b.position); g.quaternion.copy(b.quaternion); g.scale.copy(b.scale);
+    add(id, g, { kind: 'electronic', frame: boardId, ...meta });
+  };
+  splitStage('rtc', 'headers', 'rtcHdr', { name: 'right-angle male pin headers', bom: 'Male Pin Header Right Angle Strips' });
+  splitStage('mux', 'headers', 'muxHdr', { name: 'male pin headers', bom: 'Male Pin Header Strips' });
+  splitStage('ledCtl', 'headers', 'ledHdr', { name: '16 sets of three male pin headers', bom: 'Male Pin Header Strips' });
+  splitStage('ledCtl', 'female', 'ledFem', { name: 'two 6-pin female headers', bom: 'Female Pin Header Kit' });
+  splitStage('stirCtl', 'headers', 'stirTerm', { name: 'two screw terminals and 4-pin male header', bom: 'Adafruit DRV8871 DC Motor Controller' });
+  splitStage('tsl', 'headers', 'tslHdr', { name: 'pin header strip that comes with this sensor board', bom: 'TSL2591 Light Sensor' });
   add('sealN', inPrint('N', B.sealantBlob(3, 11), [-391.5, -22, 19.5]), { name: 'black silicone sealant', bom: 'Black High Temp Silicone Sealant', kind: 'consumable', frame: 'modN' });
   add('odLed', inPrint('O', B.led5mm('#c0306a', true), [-391.5, -92.5, 9.5], [['y', 180]]), { name: '940nm LED', bom: 'Optional LEDs (100 UV-NIR, includes shipping)', kind: 'electronic', frame: 'modO' });
   add('sealO', inPrint('O', B.sealantBlob(3, 12), [-391.5, -92.5, 19.5]), { name: 'black silicone sealant', bom: 'Black High Temp Silicone Sealant', kind: 'consumable', frame: 'modO' });
@@ -198,6 +218,8 @@ export async function buildAssembly(root, onProgress = () => {}, opts = {}) {
     add('sixLed' + i, inPrint('P', B.led5mm(SIX[i][1]), [x, y, 9.5], [['y', 180]]), { name: `${SIX[i][0]} LED`, bom: 'Optional LEDs (100 UV-NIR, includes shipping)', kind: 'electronic', frame: 'modP', ledColor: SIX[i][0] }));
   add('sealP', inPrint('P', B.sealantBlob(4, 13), [-391.5, -54.2, 19.5]), { name: 'black silicone sealant', bom: 'Black High Temp Silicone Sealant', kind: 'consumable', frame: 'modP' });
   add('supports', at(B.supportBits(5), 0, 0, 0), { name: '3D printed support material', kind: 'consumable', frame: null });
+  { const sm = B.supportBits(8); sm.scale.set(0.42, 1, 0.42); add('supportsM', at(sm, 0, 0, 0), { name: '3D printed support material', kind: 'consumable', frame: null }); }
+  { const so = B.supportBits(11); so.scale.set(0.42, 1, 0.42); add('supportsO', at(so, 0, 0, 0), { name: '3D printed support material', kind: 'consumable', frame: null }); }
 
   // ---- vial and labware
   const vial = at(B.vial(), TX, VIAL_FLOOR, TZ); add('vial', vial, { name: '90mL glass vial', bom: '90mL Glass Vial', kind: 'labware' });
@@ -209,10 +231,16 @@ export async function buildAssembly(root, onProgress = () => {}, opts = {}) {
   const holesXZ = B.capHoles();
   holesXZ.slice(1).forEach(([x, z], i) => add('needle' + i, at(B.needle(50.8), TX + x, CAP_Y + 21.5 - 50.8 + 3, TZ + z), { name: '2" 14 Gauge Needle', bom: 'Dispensing Needle 14ga 1.5"', kind: 'labware', frame: 'cap' }));
   holesXZ.forEach(([x, z], i) => add('moldNeedle' + i, at(B.needle(101.6), 215 + x, 115.6, -15 + z, 0, 180), { name: '14-gauge 4" luer-lock dispensing needle', bom: 'Dispensing Needle 14ga 4"', kind: 'hardware', frame: 'modH' }));
-  add('siliconeCup', at(B.cup('two-part silicone'), 268, 0, 25), { name: 'two-part silicone (20 g base + 20 g hardener)', bom: 'Hard Silicone Rubber Casting Resin', kind: 'consumable', frame: null });
-  add('bottleTop', at(B.siliconeCap(M.silBlue, 'silicone media bottle top'), -160, 12, 132), { name: 'silicone media bottle top', bom: 'Hard Silicone Rubber Casting Resin', kind: 'labware', frame: null });
+  { const cupG = B.cup('two-part silicone'); const mix = B.liquid(21.5, 30, M.silBlack); mix.position.y += 1.2; cupG.add(B.staged(mix, 'mix')); add('siliconeCup', at(cupG, 268, 0, 25), { name: 'two-part silicone (20 g base + 20 g hardener)', bom: 'Hard Silicone Rubber Casting Resin', kind: 'consumable', frame: null }); }
+  add('bottleTop', at(B.siliconeCap(M.silBlue, 'silicone media bottle top'), 120, 26.5, 205, 0, 90), { name: 'silicone media bottle top', bom: 'Hard Silicone Rubber Casting Resin', kind: 'labware', frame: null });
   parts.bottleTop.obj.scale.set(1.15, 0.6, 1.15);
-  [-5, 5].forEach((dx, i) => add('btLuer' + i, at(B.luerFemale(), -160 + dx, 25, 132), { name: 'luer lock', bom: 'Luer Lock Female to Barb 1/8" Cat# 51525K293', kind: 'labware', frame: 'bottleTop' }));
+  [-5, 5].forEach((dx, i) => {
+    add('btLuer' + i, at(B.luerFemale(), 120 + dx, 26.5, 219, 0, 90), { name: 'luer lock', bom: 'Luer Lock Female to Barb 1/8" Cat# 51525K293', kind: 'labware', frame: 'bottleTop' });
+    add('btLuer' + (i + 2), at(B.luerFemale(), 120 + dx, 26.5, 191, 0, -90), { name: 'luer lock', bom: 'Luer Lock Female to Barb 1/8" Cat# 51525K293', kind: 'labware', frame: 'bottleTop' });
+    const tb = new THREE.Mesh(new THREE.CylinderGeometry(3.175, 3.175, 26, 14), M.tubing); tb.rotation.x = Math.PI / 2; const tl = new THREE.Mesh(new THREE.CylinderGeometry(3.175, 3.175, 44, 14), M.tubing); tl.rotation.x = Math.PI / 2; tl.position.z = -9;
+    const tg = new THREE.Group(); tg.add(B.staged(tb, 'trimmed')); tg.add(B.staged(tl, 'raw')); tg.name = 'Silicone Tubing (short tube)'; tg.position.set(120 + dx, 26.5, 205);
+    add('btTube' + i, tg, { name: 'short tube', bom: 'Silicone Tubing 1/8" ID x 1/4" OD', kind: 'labware', frame: 'bottleTop' });
+  });
 
   root.updateMatrixWorld(true);
   const prims = collectPrims(parts);
@@ -221,6 +249,7 @@ export async function buildAssembly(root, onProgress = () => {}, opts = {}) {
   return { parts, printFrame, prims };
 }
 
+const AS_BOUGHT = new Set(['raw', 'straight', 'smdR', 'flash', 'trace', 'bent90', 'stripC', 'stripS']);
 // oriented boxes of every procedural primitive at the assembled pose (used to route wires clear of parts)
 function collectPrims(parts) {
   const out = [];
@@ -228,6 +257,7 @@ function collectPrims(parts) {
     const p = parts[id]; if (p.kind === 'printed' || p.kind === 'virtual') continue;
     p.obj.traverse(m => {
       if (!m.isMesh || m.isInstancedMesh) return;
+      for (let q = m; q && q !== p.obj.parent; q = q.parent) if (AS_BOUGHT.has(q.userData.stage)) return;   // geometry removed during the build
       const g = m.geometry; g.computeBoundingBox(); const bb = g.boundingBox;
       const sz = bb.getSize(new THREE.Vector3()); if (Math.min(sz.x, sz.y, sz.z) < 0.15) return;
       out.push({ id, inv: m.matrixWorld.clone().invert(), min: bb.min.clone(), max: bb.max.clone() });

@@ -17,6 +17,9 @@ export function cyl(r, h, mat, x = 0, y = 0, z = 0, axis = 'y', seg = 24, rt = n
   if (axis === 'x') g.rotateZ(-Math.PI / 2); else if (axis === 'z') g.rotateX(Math.PI / 2);
   const m = new THREE.Mesh(g, mat); m.position.set(x, y, z); return m;
 }
+// geometry that only exists after a manual step (pin headers soldered, bus wire soldered): kept out of the
+// mesh merge and toggled by the timeline
+export function staged(obj, name) { obj.userData.stage = name; return obj; }
 function group(name, ...kids) { const g = new THREE.Group(); g.name = name; g.userData.pins = {}; kids.forEach(k => g.add(k)); return g; }
 function pin(g, name, x, y, z, lead) { g.userData.pins[name] = new THREE.Vector3(x, y, z); if (lead) (g.userData.leads || (g.userData.leads = {}))[name] = new THREE.Vector3(...lead).normalize(); }
 function pinField(pts, len, mat = M.gold, w = 0.64, axis = 'y') {
@@ -151,11 +154,13 @@ export function tlc5947() {
   const colX = k => -17.78 + (k % 3) * 2.54 + Math.floor(k / 3) * 10.16;
   const pts = [];
   for (let k = 0; k < 12; k++) for (const z of [10.4, 7.86, -10.4, -7.86]) pts.push([colX(k), 1.6 + 2.5 + 1.5, z]);
-  for (let gI = 0; gI < 4; gI++) for (const z of [10.4, 7.86, -10.4, -7.86]) g.add(box(3 * 2.54, 2.5, 2.54, M.header, colX(gI * 3 + 1), 2.85, z));
-  g.add(pinField(pts, 11.5));
-  const fIn = femaleHeader(6); fIn.rotation.y = -Math.PI / 2; fIn.position.set(-22.0, 1.6, -6.35); g.add(fIn);
-  const fOut = femaleHeader(6); fOut.rotation.y = -Math.PI / 2; fOut.position.set(22.0, 1.6, -6.35); g.add(fOut);
-  g.add(cyl(1.15, 6.3, M.capBlue, -18.5, 4.2, -2.5, 'z', 12));
+  const hdr = staged(new THREE.Group(), 'headers'); g.add(hdr);
+  for (let gI = 0; gI < 4; gI++) for (const z of [10.4, 7.86, -10.4, -7.86]) hdr.add(box(3 * 2.54, 2.5, 2.54, M.header, colX(gI * 3 + 1), 2.85, z));
+  hdr.add(pinField(pts, 11.5));
+  const fem = staged(new THREE.Group(), 'female'); g.add(fem);
+  const fIn = femaleHeader(6); fIn.rotation.y = -Math.PI / 2; fIn.position.set(-22.0, 1.6, -6.35); fem.add(fIn);
+  const fOut = femaleHeader(6); fOut.rotation.y = -Math.PI / 2; fOut.position.set(22.0, 1.6, -6.35); fem.add(fOut);
+  g.add(staged(box(1.6, 0.6, 0.8, M.chip, -18.5, 1.9, -2.5), 'smdR'));
   ['LAT', '/OE', 'CLK', 'DIN', 'GND', 'V+'].forEach((n, i) => pin(g, n, -22.0, 10.1, -6.35 + i * 2.54));
   for (let k = 0; k < 24; k++) { const x = k < 12 ? colX(k) : colX(23 - k), s = k < 12 ? 1 : -1; pin(g, `ch${k}+`, x, 10.6, s * 10.4); pin(g, `ch${k}-`, x, 10.6, s * 7.86); }
   return shadow(g);
@@ -167,8 +172,8 @@ export function tca9548a() {
   g.add(pcb(33, 20.3, M.pcbPurple));
   holes(g, [[-12.7, 0], [12.7, 0]], 1.62, 1.3);
   const c = chip(7, 4.5); c.position.set(0, 1.6, 0); g.add(c);
-  const h1 = maleHeader(12, 1, 6, 2.5); h1.position.set(-13.97, 1.6, 8.6); g.add(h1);
-  const h2 = maleHeader(12, 1, 6, 2.5); h2.position.set(-13.97, 1.6, -8.6); g.add(h2);
+  const h1 = maleHeader(12, 1, 6, 2.5); h1.position.set(-13.97, 1.6, 8.6); g.add(staged(h1, 'headers'));
+  const h2 = maleHeader(12, 1, 6, 2.5); h2.position.set(-13.97, 1.6, -8.6); g.add(staged(h2, 'headers'));
   ['VIN', 'GND', 'SDA', 'SCL', 'RST', 'A0', 'A1', 'A2', 'SD0', 'SC0', 'SD1', 'SC1'].forEach((n, i) => pin(g, n, -13.97 + i * 2.54, 10.1, 8.6));
   ['SD2', 'SC2', 'SD3', 'SC3', 'SD4', 'SC4', 'SD5', 'SC5', 'SD6', 'SC6', 'SD7', 'SC7'].forEach((n, i) => pin(g, n, -13.97 + i * 2.54, 10.1, -8.6));
   return shadow(g);
@@ -181,9 +186,10 @@ export function ds3231() {
   g.add(pcb(22.9, 17.8, M.pcbBlack));
   g.add(cyl(7.0, 3.6, M.steel, 1.5, 3.4, 1.8, 'y', 32));
   const c = chip(7.5, 5, 1.6); c.position.set(-7, 1.6, 4.5); c.rotation.y = Math.PI / 2; g.add(c);
-  g.add(box(7 * 2.54, 2.5, 2.5, M.header, 0, 2.85, -10.2));
+  const hdr = staged(new THREE.Group(), 'headers'); g.add(hdr);
+  hdr.add(box(7 * 2.54, 2.5, 2.5, M.header, 0, 2.85, -10.2));
   const pts = []; for (let i = 0; i < 7; i++) pts.push([-7.62 + i * 2.54, 2.85, -14.2]);
-  g.add(pinField(pts, 9, M.gold, 0.64, 'z'));
+  hdr.add(pinField(pts, 9, M.gold, 0.64, 'z'));
   ['VIN', 'GND', 'SCL', 'SDA', 'BAT', '32K', 'SQW'].forEach((n, i) => pin(g, n, -7.62 + i * 2.54, 2.85, -18.7, [0, 0, -1]));
   return shadow(g);
 }
@@ -196,10 +202,10 @@ export function drv8871() {
   g.add(pcb(25.4, 20.3, M.pcbAda));
   holes(g, [[-7.62, 7.6], [7.62, 7.6]], 1.62, 1.3);
   const c = chip(5, 4, 1); c.position.set(2, 1.6, -0.5); g.add(c);
-  const t1 = screwTerminal(2, M.black, 3.5, 8.5, 7); t1.rotation.y = Math.PI; t1.position.set(-9.2, 1.6, -6.2); g.add(t1);
-  const t2 = screwTerminal(2, M.black, 3.5, 8.5, 7); t2.rotation.y = Math.PI; t2.position.set(9.2, 1.6, -6.2); g.add(t2);
+  const t1 = screwTerminal(2, M.black, 3.5, 8.5, 7); t1.rotation.y = Math.PI; t1.position.set(-9.2, 1.6, -6.2); g.add(staged(t1, 'headers'));
+  const t2 = screwTerminal(2, M.black, 3.5, 8.5, 7); t2.rotation.y = Math.PI; t2.position.set(9.2, 1.6, -6.2); g.add(staged(t2, 'headers'));
   const cp = capacitor(3, 7); cp.position.set(-5, 1.6, 3); g.add(cp);
-  const h = maleHeader(4, 1, 6, 2.5); h.position.set(-1.4, 1.6, 7.9); g.add(h);
+  const h = maleHeader(4, 1, 6, 2.5); h.position.set(-1.4, 1.6, 7.9); g.add(staged(h, 'headers'));
   pin(g, 'POWER+', -9.2, 10.5, -6.2, [0, 1, -0.5]); pin(g, 'POWER-', -12.7, 10.5, -6.2, [0, 1, -0.5]);
   pin(g, 'OUT2', 9.2, 10.5, -6.2, [0, 1, -0.5]); pin(g, 'OUT1', 5.7, 10.5, -6.2, [0, 1, -0.5]);
   ['GND', 'VM', 'IN1', 'IN2'].forEach((n, i) => pin(g, n, -1.4 + i * 2.54, 10.1, 7.9));
@@ -213,7 +219,8 @@ export function converter() {
   g.add(box(44, 13, 20, M.alu, 0, 6.5, 0, 1.2));
   for (let i = 0; i < 5; i++) g.add(box(30, 0.4, 1.0, M.aluDark, 0, 13.1, -6 + i * 3));
   g.add(box(2.2, 6, 12, M.black, 23, 5, 0)); g.add(box(2.2, 6, 12, M.black, -23, 5, 0));
-  [[1, -2.5, 'red'], [1, 2.5, 'black'], [-1, -2.5, 'red'], [-1, 2.5, 'black']].forEach(([s, z, c]) => g.add(cyl(0.9, 15, wireMat(c), s * 31.5, 5, z, 'x', 8)));
+  const raw = staged(new THREE.Group(), 'raw'); g.add(raw); const trim = staged(new THREE.Group(), 'trimmed'); g.add(trim);
+  [[1, -2.5, 'red'], [1, 2.5, 'black'], [-1, -2.5, 'red'], [-1, 2.5, 'black']].forEach(([s, z, c]) => { raw.add(cyl(0.9, 120, wireMat(c), s * 84, 5, z, 'x', 8)); trim.add(cyl(0.9, 9, wireMat(c), s * 28.5, 5, z, 'x', 8)); trim.add(cyl(0.55, 6, M.steel, s * 36, 5, z, 'x', 6)); });
   pin(g, 'IN+', 39, 5, -2.5, [1, 0, 0]); pin(g, 'IN-', 39, 5, 2.5, [1, 0, 0]); pin(g, 'OUT+', -39, 5, -2.5, [-1, 0, 0]); pin(g, 'OUT-', -39, 5, 2.5, [-1, 0, 0]);
   return shadow(g);
 }
@@ -222,8 +229,9 @@ export function converter() {
 export function busHeader(color) {
   const g = group(`20-pin female header (${color})`);
   g.add(femaleHeader(20));
-  g.add(cyl(0.65, 50.8, wireMat('bare'), 24.13, 2.0, 1.95, 'x', 8));
-  for (let i = 0; i < 20; i++) g.add(box(1.2, 1.4, 1.2, M.steel, i * 2.54, 1.8, 1.6));
+  const bus = staged(new THREE.Group(), 'bus'); g.add(bus);
+  bus.add(cyl(0.65, 50.8, wireMat('bare'), 24.13, 2.0, 1.95, 'x', 8));
+  for (let i = 0; i < 20; i++) bus.add(box(1.2, 1.4, 1.2, M.steel, i * 2.54, 1.8, 1.6));
   for (let i = 0; i < 20; i++) pin(g, 'p' + i, i * 2.54, 8.5, 0);
   pin(g, 'lead', -1.0, 2.0, 1.95, [-1, 0, 0]);
   return shadow(g);
@@ -310,7 +318,10 @@ export function stirFan() {
   rotor.add(cyl(12.5, 17, M.black, 0, 10, 0, 'y', 32)); rotor.add(cyl(11, 0.3, M.label, 0, 18.6, 0, 'y', 32));
   for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2; const b = box(7, 0.8, 9, M.black); b.position.set(Math.cos(a) * 15.5, 10, Math.sin(a) * 15.5); b.rotation.y = -a; b.rotateX(0.55); rotor.add(b); }
   g.add(rotor); g.userData.rotor = rotor;
-  g.add(cyl(0.7, 15, wireMat('red'), 19.5, 6, 27.5, 'z', 8)); g.add(cyl(0.7, 15, wireMat('black'), 17, 6, 27.5, 'z', 8));
+  const raw = staged(new THREE.Group(), 'raw'); g.add(raw); const trim = staged(new THREE.Group(), 'trimmed'); g.add(trim);
+  raw.add(cyl(0.7, 110, wireMat('red'), 18.95, 6, 75, 'z', 8)); raw.add(cyl(0.7, 110, wireMat('black'), 17.55, 6, 75, 'z', 8)); raw.add(box(5.2, 3, 7, M.white, 18.25, 6, 133.5));
+  trim.add(cyl(0.7, 9, wireMat('red'), 19.5, 6, 24.5, 'z', 8)); trim.add(cyl(0.7, 9, wireMat('black'), 17, 6, 24.5, 'z', 8));
+  trim.add(cyl(0.45, 6, M.steel, 19.5, 6, 32, 'z', 6)); trim.add(cyl(0.45, 6, M.steel, 17, 6, 32, 'z', 6));
   pin(g, '+', 19.5, 6, 35, [0, 0, 1]); pin(g, '-', 17, 6, 35, [0, 0, 1]);
   return shadow(g);
 }
@@ -321,7 +332,8 @@ export function heaterPlate() {
   const g = group('PTC Heating Plate 80C');
   g.add(box(21, 5, 35, M.alu, 0, 2.5, 0, 0.6));
   g.add(box(16, 5.4, 6, M.kapton, 0, 2.5, 18.5));
-  [-4, 4].forEach(x => { g.add(cyl(1.4, 15, M.pcbRed, x, 2.5, 29, 'z', 10)); g.add(cyl(0.8, 6, M.steel, x, 2.5, 39, 'z', 8)); });
+  const raw = staged(new THREE.Group(), 'raw'); g.add(raw); const trim = staged(new THREE.Group(), 'trimmed'); g.add(trim);
+  [-4, 4].forEach(x => { raw.add(cyl(1.4, 100, M.pcbRed, x, 2.5, 71.5, 'z', 10)); trim.add(cyl(1.4, 15, M.pcbRed, x, 2.5, 29, 'z', 10)); trim.add(cyl(0.8, 6, M.steel, x, 2.5, 39, 'z', 8)); });
   pin(g, 'a', -4, 2.5, 42, [0, 0, 1]); pin(g, 'b', 4, 2.5, 42, [0, 0, 1]);
   return shadow(g);
 }
@@ -344,7 +356,9 @@ export function led5mm(color, clear = false) {
   g.add(cyl(2.5, 5.6, mat, 0, 0, 2.8, 'z', 20));
   const dome = new THREE.Mesh(new THREE.SphereGeometry(2.5, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), mat); dome.rotation.x = Math.PI / 2; dome.position.z = 5.6; g.add(dome);
   g.add(cyl(2.95, 1, mat, 0, 0, 0.5, 'z', 20));
-  g.add(cyl(0.25, 5, M.steel, -1.27, 0, -2.5, 'z', 6)); g.add(cyl(0.25, 5, M.steel, 1.27, 0, -2.5, 'z', 6));
+  g.add(staged(cyl(0.25, 5, M.steel, -1.27, 0, -2.5, 'z', 6), 'cut')); g.add(staged(cyl(0.25, 5, M.steel, 1.27, 0, -2.5, 'z', 6), 'cut'));
+  g.add(staged(cyl(0.25, 28, M.steel, -1.27, 0, -14, 'z', 6), 'raw')); g.add(staged(cyl(0.25, 25, M.steel, 1.27, 0, -12.5, 'z', 6), 'raw'));
+  g.add(staged(cyl(0.6, 1.8, M.black, -1.27, 0, -3.4, 'z', 8), 'mark'));
   g.userData.setOn = v => { mat.emissiveIntensity = v * 3.5; }; g.userData.mat = mat;
   pin(g, '+', -1.27, 0, -5, [0, 0, -1]); pin(g, '-', 1.27, 0, -5, [0, 0, -1]);
   return shadow(g);
@@ -357,9 +371,11 @@ export function tsl2591() {
   g.add(box(25.4, 17.8, 1.6, M.pcbBlack, 0, 0, -0.8, 0.8));
   g.add(box(2.2, 2.2, 0.9, M.chip, 0, 2, 0.45)); g.add(box(1.0, 1.0, 0.1, new THREE.MeshStandardMaterial({ color: '#5a3416', roughness: 0.1 }), 0, 2, 0.95));
   [-9, 9].forEach(x => g.add(box(4, 3.2, 3, M.white, x, 0.5, 1.5)));
-  g.add(box(6 * 2.54, 2.5, 2.5, M.header, 0, -7.1, -2.85));
+  const hdr = staged(new THREE.Group(), 'headers'); g.add(hdr);
+  hdr.add(box(6 * 2.54, 2.5, 2.5, M.header, 0, -7.1, -2.85));
   const pts = []; for (let i = 0; i < 6; i++) pts.push([-6.35 + i * 2.54, -7.1, -6.6]);
-  g.add(pinField(pts, 6, M.gold, 0.64, 'z'));
+  hdr.add(pinField(pts, 6, M.gold, 0.64, 'z'));
+  g.add(staged(box(1.6, 0.5, 0.12, M.copper, 7.5, 5.5, -1.66), 'trace'));
   ['VIN', 'GND', '3Vo', 'INT', 'SDA', 'SCL'].forEach((n, i) => pin(g, n, -6.35 + i * 2.54, -7.1, -9.6, [0, 0, -1]));
   return shadow(g);
 }
@@ -393,7 +409,7 @@ export function barrelJack() {
   const g = group('Barrel Jack Connector 5.5x2.1mm');
   g.add(cyl(5.6, 12, M.steel, 0, 0, -3, 'z', 24)); g.add(cyl(7.4, 2.2, M.steel, 0, 0, -4.2, 'z', 6));
   g.add(cyl(3.2, 12.2, M.chip, 0, 0, -2.9, 'z', 20)); g.add(cyl(1.0, 12.4, M.gold, 0, 0, -2.9, 'z', 12));
-  g.add(box(1, 3, 6, M.steel, 4, 0, -11)); g.add(box(1, 3, 6, M.steel, 0, 0, -11));
+  g.add(box(1, 3, 6, M.steel, 0, 0, -11)); g.add(staged(box(1, 3, 6, M.steel, 4, 0, -11), 'trimmed')); g.add(staged(box(1, 3, 13, M.steel, 4, 0, -14.5), 'raw'));
   pin(g, '+', 0, 0, -14, [0, 0, -1]); pin(g, '-', 4, 0, -14, [0, 0, -1]);
   return shadow(g);
 }
@@ -423,6 +439,7 @@ export function siliconeCap(mat = M.silBlack, name = 'Cast silicone rubber cap')
   const prof = [V2(0, -20), V2(16.5, -20), V2(17.5, -19), V2(17.5, 0), V2(22.5, 0), V2(22.5, 20.5), V2(21.5, 21.5), V2(0, 21.5)];
   g.add(new THREE.Mesh(new THREE.LatheGeometry(prof, 48), mat));
   capHoles().forEach(([x, z]) => g.add(cyl(1.25, 0.2, M.chip, x, 21.6, z, 'y', 12)));
+  if (name === 'Cast silicone rubber cap') g.add(staged(cyl(27, 0.8, mat, 0, 20.9, 0, 'y', 40), 'flash'));
   return shadow(g);
 }
 export function needle(len = 50.8, name) {
@@ -474,7 +491,7 @@ export function foilWrap(r = 34, h = 175) {
   for (let i = 0; i < p.count; i++) { const k = 1 + (rnd() - 0.5) * 0.08; p.setXYZ(i, p.getX(i) * k, p.getY(i), p.getZ(i) * k); }
   geo.computeVertexNormals(); geo.translate(0, h / 2, 0);
   const g = group('Aluminum foil + autoclave tape', new THREE.Mesh(geo, M.alu));
-  g.add(box(16, 40, 0.6, M.tape, 0, h * 0.55, r + 0.8));
+  g.add(staged(box(16, 40, 0.6, M.tape, 0, h * 0.55, r + 0.8), 'tape'));
   return shadow(g);
 }
 export function sealantBlob(r = 4, seed = 1) {
@@ -497,19 +514,30 @@ export function topLabel() {
 export function supportBits(seed = 3) { const g = group('3D printed support material'); let s = seed; const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280; for (let i = 0; i < 9; i++) { const b = box(2 + rnd() * 5, 0.8 + rnd(), 1 + rnd() * 3, M.pla, (rnd() - 0.5) * 40, 0.5, (rnd() - 0.5) * 30); b.rotation.y = rnd() * 3; g.add(b); } return shadow(g); }
 
 // Loose prepared wire laid flat on the bench (the manual's "Prepare wires" photos). Local: along x on y=0.
-export function looseWire(lengthMM, color, ends = 'female-male', seed = 1) {
+export function looseWire(lengthMM, color, ends = 'female-male', seed = 1, opts = {}) {
   let s = seed * 77 + 3; const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
   const pts = []; const n = 9, L = Math.max(30, lengthMM * 0.92);
-  for (let i = 0; i <= n; i++) { const u = i / n; pts.push(new THREE.Vector3(u * L - L / 2, 0.9, Math.sin(u * Math.PI) * (4 + rnd() * 6) * (seed % 2 ? 1 : -1))); }
+  for (let i = 0; i <= n; i++) { const u = i / n; pts.push(new THREE.Vector3(u * L - L / 2, 0.9, Math.sin(u * Math.PI) * (1.2 + rnd() * 1.8) * (seed % 2 ? 1 : -1))); }
   const curve = new THREE.CatmullRomCurve3(pts);
-  const g = group(`${(lengthMM / 10).toFixed(lengthMM % 10 ? 1 : 0)}cm ${color} wire (${ends})`, new THREE.Mesh(new THREE.TubeGeometry(curve, 50, 0.85, 6, false), wireMat(color)));
+  const ins = new THREE.Mesh(new THREE.TubeGeometry(curve, 50, 0.85, 6, false), wireMat(opts.color || color));
+  const g = group(`${(lengthMM / 10).toFixed(lengthMM % 10 ? 1 : 0)}cm ${color} wire (${ends})`);
+  if (opts.bridge) {   // step 4: the covering is slid off, the core twisted and tinned
+    g.add(staged(ins, 'raw'));
+    g.add(staged(new THREE.Mesh(new THREE.TubeGeometry(curve, 50, 0.45, 6, false), M.steel), 'tin'));
+    return shadow(g);
+  }
+  g.add(ins);
   const [a, b] = ends.split('-');
   const endPiece = (kind, u) => {
     const p = curve.getPointAt(u), t = curve.getTangentAt(u).multiplyScalar(u < 0.5 ? -1 : 1);
-    const m = new THREE.Group();
-    if (kind === 'female') m.add(box(2.6, 2.6, 13, M.header, 0, 0, -6.5));
-    else if (kind === 'male') { m.add(box(2.6, 2.6, 13, M.header, 0, 0, -6.5)); m.add(box(0.64, 0.64, 6, M.gold, 0, 0, 3)); }
-    else m.add(cyl(0.55, 6, M.steel, 0, 0, 0, 'z', 6));
+    const m = new THREE.Group(); const crimp = kind === 'female' || kind === 'male';
+    m.add(staged(cyl(0.42, 6, M.copper, 0, 0, 3, 'z', 6), crimp ? 'stripC' : 'stripS'));          // 6mm stripped end
+    if (crimp) {
+      const pinG = staged(new THREE.Group(), 'pin'); m.add(pinG);                                    // Wire Crimping 1: pin crimped on
+      pinG.add(box(1.1, 1.1, 7, M.gold, 0, 0, kind === 'male' ? 0.5 : -2.5));
+      if (kind === 'male') pinG.add(box(0.64, 0.64, 6, M.gold, 0, 0, 6));
+      m.add(staged(box(2.6, 2.6, 13, M.header, 0, 0, kind === 'male' ? -4.5 : -6.5), 'hous'));   // Wire Crimping 2: into its housing
+    } else m.add(staged(cyl(0.55, 6, M.steel, 0, 0, 3, 'z', 6), 'tin'));                            // twisted and tinned at its step
     m.position.copy(p); m.lookAt(p.clone().add(t)); g.add(m);
   };
   endPiece(a, 0); endPiece(b, 1);
@@ -523,8 +551,8 @@ export function optimizePart(group) {
   const inv = group.matrixWorld.clone().invert();
   const buckets = new Map(), victims = [];
   group.traverse(o => {
-    if (o === group || !o.isMesh || o.isInstancedMesh || o.userData.keep) return;
-    for (let q = o.parent; q && q !== group; q = q.parent) if (q.name === 'rotor' || q.userData.keep) return;
+    if (o === group || !o.isMesh || o.isInstancedMesh || o.userData.keep || o.userData.stage) return;
+    for (let q = o.parent; q && q !== group; q = q.parent) if (q.name === 'rotor' || q.userData.keep || q.userData.stage) return;
     const m = o.material; if (Array.isArray(m)) return;
     const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
     for (const k of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(k)) g.deleteAttribute(k);
@@ -538,3 +566,169 @@ export function optimizePart(group) {
   for (const [mat, geos] of buckets) { const merged = mergeGeometries(geos, false); if (!merged) continue; merged.computeBoundingSphere(); const mesh = new THREE.Mesh(merged, mat); mesh.castShadow = merged.boundingSphere.radius > 3; mesh.receiveShadow = true; group.add(mesh); }
   return group;
 }
+
+
+// ---------------------------------------------------------------- base materials (Bill of Materials rows)
+// Laid out on the table before the build; parts are taken from here at the step that uses them.
+const R = (r, h, mat, y = h / 2, seg = 32) => cyl(r, h, mat, 0, y, 0, 'y', seg);
+const std2 = c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.5 });
+export function plaSpool() {
+  const g = group('Matte Black PLA Filament');
+  g.add(R(100, 4, M.black, 2)); g.add(R(100, 4, M.black, 63)); g.add(R(92, 57, M.pla, 32.5, 48)); g.add(R(27, 66.5, M.white, 33.2, 24));
+  return shadow(g);
+}
+export function wireKitBox(colors, name) {
+  const g = group(name);
+  const n = colors.length, w = n * 34 + 8;
+  g.add(box(w, 4, 46, M.white, 0, 2, 0)); g.add(box(w, 26, 2, M.white, 0, 13, -23)); g.add(box(w, 26, 2, M.white, 0, 13, 23)); g.add(box(2, 26, 46, M.white, -w / 2, 13, 0)); g.add(box(2, 26, 46, M.white, w / 2, 13, 0));
+  colors.forEach((c, i) => {
+    const x = -w / 2 + 21 + i * 34;
+    [[1, M.black], [10, wireMat(c)], [19, M.black]].forEach(([z, m], k) => g.add(cyl(k === 1 ? 13 : 15, k === 1 ? 16 : 2, m, x, 19, z - 10, 'z', 24)));
+  });
+  return shadow(g);
+}
+export function sealantTube() { const g = group('Black High Temp Silicone Sealant'); g.add(cyl(12, 95, M.black, 0, 12, 0, 'x', 20)); g.add(cyl(4, 24, M.pcbRed, 59, 12, 0, 'x', 12, 1.5)); g.add(box(60, 0.4, 16, M.pcbRed, -5, 24.1, 0)); return shadow(g); }
+export function tapeRoll() { const geo = new THREE.TorusGeometry(24, 6, 10, 32); geo.rotateX(Math.PI / 2); geo.scale(1, 2.2, 1); geo.translate(0, 13.2, 0); return shadow(group('Double Sided Tape Heavy Duty', new THREE.Mesh(geo, M.tape))); }
+export function solderSpool() { const g = group('Lead-Free Solder'); g.add(cyl(25, 2, M.black, 0, 25, -10, 'z', 28)); g.add(cyl(22, 18, M.steel, 0, 25, 0, 'z', 28)); g.add(cyl(25, 2, M.black, 0, 25, 10, 'z', 28)); return shadow(g); }
+export function fluxPen() { const g = group('Smooth Flow Flux'); g.add(cyl(18, 50, M.white, 0, 25, 0, 'y', 24)); g.add(cyl(10, 14, M.capBlue, 0, 57, 0, 'y', 20)); g.add(box(30, 20, 0.6, M.label, 0, 26, 18.1)); return shadow(g); }
+export function resinKit() { const g = group('Hard Silicone Rubber Casting Resin'); [[-26, M.white], [26, M.silBlue]].forEach(([x, m]) => { g.add(cyl(22, 80, m, x, 40, 0, 'y', 28)); g.add(cyl(11, 12, M.black, x, 86, 0, 'y', 20)); }); return shadow(g); }
+export function headerStrip(kind) {
+  const name = kind === 'female' ? 'Female Pin Header Kit' : kind === 'ra' ? 'Male Pin Header Right Angle Strips' : 'Male Pin Header Strips';
+  const g = group(name);
+  for (let k = 0; k < 4; k++) { const h = kind === 'female' ? femaleHeader(40) : maleHeader(40, 1, 6, 3); h.position.set(-49.5, kind === 'ra' ? 1.3 : 0, -6 + k * 4.5); if (kind === 'ra') { h.rotation.x = Math.PI / 2; h.position.y = 3; } g.add(h); }
+  return shadow(g);
+}
+export function pinBag() {
+  const g = group('Pin Connector and Pin Connector Housing');
+  g.add(box(70, 3, 50, new THREE.MeshPhysicalMaterial({ color: '#eef3f8', roughness: 0.3, transparent: true, opacity: 0.45, depthWrite: false }), 0, 1.5, 0, 1));
+  let s = 3; const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
+  for (let i = 0; i < 28; i++) { const b = box(2.6, 2.6, 13, M.header, (rnd() - 0.5) * 56, 3.4, (rnd() - 0.5) * 36); b.rotation.y = rnd() * 3; g.add(b); }
+  for (let i = 0; i < 22; i++) { const b = box(0.8, 0.8, 9, M.gold, (rnd() - 0.5) * 56, 3.0, (rnd() - 0.5) * 36); b.rotation.y = rnd() * 3; g.add(b); }
+  return shadow(g);
+}
+export function powerSupply() {
+  const g = group('12v 5A Power Supply');
+  g.add(box(120, 32, 52, M.black, 0, 16, 0, 3)); g.add(box(60, 0.4, 30, M.label, 0, 32.2, 0));
+  const geo = new THREE.TorusGeometry(26, 2.2, 8, 40); geo.rotateX(Math.PI / 2);
+  const coil = staged(new THREE.Group(), 'raw'); g.add(coil); for (let k = 0; k < 3; k++) { const m = new THREE.Mesh(geo, M.black); m.position.set(100, 2.5 + k * 4.2, 0); coil.add(m); }
+  return shadow(g);
+}
+export function ntcThermistor() {
+  const g = group('Precision 10K Ohm NTC Thermistor');
+  const b = new THREE.Mesh(new THREE.SphereGeometry(1.6, 12, 10), M.capBlue); b.position.set(0, 1.6, 0); g.add(b);
+  [-0.6, 0.6].forEach(z => g.add(cyl(0.2, 70, M.copper, 36, 0.4, z, 'x', 6)));
+  return shadow(g);
+}
+export function resistor(name, band = '#c0392b') { const g = group(name); g.add(cyl(1.2, 6.3, std2('#4a8fd0'), 0, 1.2, 0, 'x', 12)); g.add(cyl(1.25, 0.8, std2(band), -1.5, 1.2, 0, 'x', 12)); [-1, 1].forEach(s => g.add(cyl(0.3, 26, M.steel, s * 16, 1.2, 0, 'x', 6))); return shadow(g); }
+export function header3() { const g = group('3-pin male header'); const h = maleHeader(3, 1, 6, 3); h.position.set(-2.54, 0, 0); g.add(h); return shadow(g); }
+export function tubingCoil() { const g = group('Silicone Tubing 1/8" ID x 1/4" OD'); for (let k = 0; k < 4; k++) { const geo = new THREE.TorusGeometry(48 - k * 4.5, 3.175, 10, 48); geo.rotateX(Math.PI / 2); const m = new THREE.Mesh(geo, M.tubing); m.position.y = 3.2 + k * 0.3; g.add(m); } return g; }
+export function foilRoll() { const g = group('aluminum foil'); g.add(box(300, 44, 44, M.white, 0, 22, 0, 2)); g.add(box(296, 0.4, 30, M.label, 0, 44.2, 0)); return shadow(g); }
+export function mediaBottle() {
+  const g = group('microbial media');
+  const pts = [V2(0, 0), V2(30, 0), V2(32, 3), V2(32, 110), V2(16, 128), V2(16, 140), V2(0, 140)];
+  const glass = new THREE.Mesh(new THREE.LatheGeometry(pts, 40), M.glass); glass.renderOrder = 3; g.add(glass);
+  const l = new THREE.Mesh(new THREE.CylinderGeometry(30, 30, 80, 40), M.media); l.position.y = 42; l.renderOrder = 2; g.add(l);
+  g.add(cyl(18, 14, M.capBlue, 0, 147, 0, 'y', 28));
+  return shadow(g);
+}
+export function needle4() { return needle(101.6, 'Dispensing Needle 14ga 4"'); }
+export function luerLock(kind) { return kind === 'male' ? luerMale() : luerFemale(); }
+
+// ---------------------------------------------------------------- thermistor assemblies, built from their parts (manual steps 18-24)
+// Heater thermistor unit, local frame: header pins along x (+ at -2.54, S at 0, - at +2.54), pins point +z;
+// the NTC bead lies at z -30. Each piece is its own part in this same frame, so "final" means soldered in place.
+function seg3(a, b, r, mat) { const d = new THREE.Vector3().subVectors(b, a), m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, d.length(), 6), mat); m.position.copy(a).add(b).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); return m; }
+function polyRod(pts, r, mat, g) { for (let i = 1; i < pts.length; i++) g.add(seg3(pts[i - 1], pts[i], r, mat)); }
+const P3 = (x, y, z) => new THREE.Vector3(x, y, z);
+export function thermHeaderUnit() {
+  const g = group('3-pin male header');
+  g.add(box(3 * 2.54, 2.5, 2.5, M.header, 0, 0, 6.25));
+  g.add(pinField([[-2.54, 0, 10.5], [0, 0, 10.5], [2.54, 0, 10.5]], 6, M.gold, 0.64, 'z'));
+  g.add(pinField([[-2.54, 0, 3.5], [0, 0, 3.5], [2.54, 0, 3.5]], 3, M.gold, 0.64, 'z'));
+  g.add(staged(box(1.6, 0.15, 1.6, M.white, 2.54, 1.32, 6.25), 'mark'));                       // step 21: the pin with no resistor lead
+  g.add(staged(cyl(3.0, 16, M.heatshrink, 0, 0, 0, 'z', 18), 'shrinkBig'));                    // step 21: 16mm of 6mm heatshrink over all three pins
+  pin(g, 'S', 0, 0, 13.6, [0, 0, 1]); pin(g, '+', -2.54, 0, 13.6, [0, 0, 1]); pin(g, '-', 2.54, 0, 13.6, [0, 0, 1]);
+  return shadow(g);
+}
+export function ntcHeaterUnit() {
+  const g = group('Precision 10K Ohm NTC Thermistor');
+  const b = new THREE.Mesh(new THREE.SphereGeometry(1.6, 14, 10), M.capBlue); b.position.set(1.27, 0, -30); g.add(b);
+  const raw = staged(new THREE.Group(), 'raw'); g.add(raw);                                     // as bought: long enamelled leads
+  for (const ph of [0, Math.PI]) { const pts = []; for (let k = 0; k <= 44; k++) { const z = -28.6 + k * 3, a = ph + k * 1.05; pts.push(P3(1.27 + Math.cos(a) * 0.32, Math.sin(a) * 0.32, z)); } polyRod(pts, 0.2, M.copper, raw); }
+  const prep = staged(new THREE.Group(), 'prepared'); g.add(prep);                              // step 18: unwound, trimmed to 40mm, enamel scraped and tinned
+  polyRod([P3(1.0, 0, -28.6), P3(0.4, 0, -12), P3(0, 0, -4)], 0.2, M.copper, prep); polyRod([P3(0, 0, -4), P3(0, 0, 2.2)], 0.24, M.steel, prep);
+  polyRod([P3(1.54, 0, -28.6), P3(2.2, 0, -12), P3(2.54, 0, -4)], 0.2, M.copper, prep); polyRod([P3(2.54, 0, -4), P3(2.54, 0, 2.2)], 0.24, M.steel, prep);
+  g.add(staged(cyl(1.25, 16, M.heatshrink, 1.27, 0, -20.5, 'z', 12), 'shrink'));              // step 21: 16mm of 2.4mm heatshrink to the base of the thermistor
+  return shadow(g);
+}
+export function resistorHeaterUnit() {
+  const g = group('Precision 10K Ohm Resistor');
+  g.add(cyl(1.0, 6, new THREE.MeshStandardMaterial({ color: '#4a8fd0', roughness: 0.5 }), -1.27, 0.9, -4, 'z', 12));
+  const st = staged(new THREE.Group(), 'straight'); g.add(st);
+  polyRod([P3(-1.27, 0.9, -1), P3(-1.27, 0.9, 20)], 0.25, M.steel, st); polyRod([P3(-1.27, 0.9, -7), P3(-1.27, 0.9, -28)], 0.25, M.steel, st);
+  const bt = staged(new THREE.Group(), 'bent'); g.add(bt);                                      // step 19: one lead bent inward, both clipped and soldered
+  polyRod([P3(-1.27, 0.9, -1), P3(-2.54, 0.5, 0.6), P3(-2.54, 0.2, 2.2)], 0.25, M.steel, bt);
+  polyRod([P3(-1.27, 0.9, -7), P3(-0.2, 1.6, -7.5), P3(0, 1.6, -3), P3(0, 0.3, 2.2)], 0.25, M.steel, bt);
+  return shadow(g);
+}
+// Thermistor needle, local frame: needle along +y from its tip (y 0); luer collar to y 111.6.
+export function needleBody() {
+  const g = needle(101.6, 'Dispensing Needle 14ga 4"');
+  g.add(staged(cyl(2.3, 0.6, M.sealant, 0, 111.9, 0, 'y', 16), 'seal1'));                       // step 23: sealant in the luer fitting
+  g.add(staged(cyl(1.3, 1.2, M.sealant, 0, -0.4, 0, 'y', 10), 'seal2'));                        // step 24: sealant over the tip opening
+  return g;
+}
+export function needleHeaderUnit() {
+  const g = group('3-pin male header');
+  g.add(box(2.5, 2.5, 3 * 2.54, M.header, 0, 132.55, 0));
+  g.add(pinField([[0, 136.8, -2.54], [0, 136.8, 0], [0, 136.8, 2.54]], 6));
+  g.add(pinField([[0, 129.8, -2.54], [0, 129.8, 0], [0, 129.8, 2.54]], 3));
+  g.add(staged(cyl(4.8, 20, M.heatshrink, 0, 123.8, 0, 'y', 22), 'shrinkBig'));                // step 22: 20mm of 9.6mm heatshrink over the header and the joints
+  pin(g, 'S', 0, 139.9, 0); pin(g, '+', 0, 139.9, -2.54); pin(g, '-', 0, 139.9, 2.54);
+  return shadow(g);
+}
+export function ntcNeedleUnit() {
+  const g = group('Precision 10K Ohm NTC Thermistor');
+  const b = new THREE.Mesh(new THREE.SphereGeometry(0.75, 12, 8), M.capBlue); b.position.set(0, 2.2, 0); g.add(b);
+  const raw = staged(new THREE.Group(), 'raw'); g.add(raw);
+  for (const ph of [0, Math.PI]) { const pts = []; for (let k = 0; k <= 44; k++) { const y = 2.8 + k * 3, a = ph + k * 1.05; pts.push(P3(Math.sin(a) * 0.3, y, Math.cos(a) * 0.3)); } polyRod(pts, 0.16, M.copper, raw); }
+  const prep = staged(new THREE.Group(), 'prepared'); g.add(prep);
+  polyRod([P3(0, 2.8, -0.25), P3(0, 112, -0.25), P3(0, 122, 0), P3(0, 128.4, 0)], 0.16, M.copper, prep);
+  polyRod([P3(0, 2.8, 0.25), P3(0, 112, 0.25), P3(0, 122, 2.54), P3(0, 128.4, 2.54)], 0.16, M.copper, prep);
+  g.add(staged(cyl(0.7, 44, M.heatshrink, 0, 106, 0, 'y', 10), 'shrink'));                     // step 22: 44mm of 2.4mm heatshrink to the base where the leads are soldered
+  return shadow(g);
+}
+export function resistorNeedleUnit() {
+  const g = group('Precision 10K Ohm Resistor');
+  g.add(cyl(1.0, 6, new THREE.MeshStandardMaterial({ color: '#4a8fd0', roughness: 0.5 }), 0, 120, -1.27, 'y', 12));
+  const st = staged(new THREE.Group(), 'straight'); g.add(st);
+  polyRod([P3(0, 123, -1.27), P3(0, 144, -1.27)], 0.25, M.steel, st); polyRod([P3(0, 117, -1.27), P3(0, 96, -1.27)], 0.25, M.steel, st);
+  const bt = staged(new THREE.Group(), 'bent'); g.add(bt);
+  polyRod([P3(0, 123, -1.27), P3(0, 126, -2.54), P3(0, 128.4, -2.54)], 0.25, M.steel, bt);
+  polyRod([P3(0, 117, -1.27), P3(0.9, 116.5, -0.4), P3(0.9, 124, 0), P3(0, 128.4, 0)], 0.25, M.steel, bt);
+  return shadow(g);
+}
+
+export function buttonWasher() { const geo = new THREE.TorusGeometry(7.75, 1.75, 6, 28); geo.scale(1, 1, 0.3); return shadow(group('button washer', new THREE.Mesh(geo, M.steel))); }
+export function luerPile(kind) { const g = group(kind === 'male' ? 'Luer Lock Male to Barb 1/8"' : 'Luer Lock Female to Barb 1/8"'); for (let i = 0; i < 16; i++) { const l = kind === 'male' ? luerMale() : luerFemale(); l.rotation.z = Math.PI / 2; l.position.set(-18 + (i % 4) * 12, 3.6, -18 + Math.floor(i / 4) * 12); g.add(l); } return g; }
+export function needlePack() { const g = group('10 Pack - Dispensing Needle 10G x 5"'); g.add(box(150, 3, 46, new THREE.MeshPhysicalMaterial({ color: '#eef3f8', roughness: 0.3, transparent: true, opacity: 0.4, depthWrite: false }), 0, 1.5, 0, 1)); for (let i = 0; i < 10; i++) { const n = needle(127, 'Dispensing Needle 10G x 5"'); n.rotation.z = -Math.PI / 2; n.position.set(-70, 4, -19 + i * 4.2); g.add(n); } return shadow(g); }
+export function jumperCaps() { const g = group('2.54mm Jumper Caps'); for (let i = 0; i < 4; i++) g.add(box(5, 6, 2.6, M.black, -9 + i * 6, 3, 0, 0.3)); return shadow(g); }
+export function clearTapeRoll() { const geo = new THREE.TorusGeometry(22, 5, 10, 32); geo.rotateX(Math.PI / 2); geo.scale(1, 1.9, 1); geo.translate(0, 9.6, 0); return shadow(group('clear tape', new THREE.Mesh(geo, new THREE.MeshPhysicalMaterial({ color: '#f4efe0', roughness: 0.3, transparent: true, opacity: 0.7 })))); }
+export function tapeBand(w, d, h) { const g = group('clear tape wrapped around the module'); const m = new THREE.MeshPhysicalMaterial({ color: '#f4efe0', roughness: 0.25, transparent: true, opacity: 0.55, depthWrite: false }); g.add(box(w + 0.6, h, 0.3, m, 0, 0, d / 2 + 0.15)); g.add(box(w + 0.6, h, 0.3, m, 0, 0, -d / 2 - 0.15)); g.add(box(0.3, h, d, m, w / 2 + 0.15, 0, 0)); g.add(box(0.3, h, d, m, -w / 2 - 0.15, 0, 0)); g.children.forEach(c => c.userData.keep = true); return g; }
+
+// 2.49K precision resistor, in the LED Controller Board's frame (steps 48-49)
+export function resistor249Unit() {
+  const g = group('Precision 2.49K Ohm Resistor');
+  g.add(cyl(1.15, 6.3, new THREE.MeshStandardMaterial({ color: '#4a8fd0', roughness: 0.5 }), -18.5, 4.2, -2.5, 'z', 12));
+  g.add(cyl(1.2, 0.8, new THREE.MeshStandardMaterial({ color: '#e0b020', roughness: 0.5 }), -18.5, 4.2, -4.5, 'z', 12));
+  const st = staged(new THREE.Group(), 'straight'); g.add(st);                          // as bought
+  polyRod([P3(-18.5, 4.2, 0.65), P3(-18.5, 4.2, 22)], 0.3, M.steel, st); polyRod([P3(-18.5, 4.2, -5.65), P3(-18.5, 4.2, -27)], 0.3, M.steel, st);
+  const b90 = staged(new THREE.Group(), 'bent90'); g.add(b90);                         // step 48: bent at a right angle, slotted through the two holes
+  polyRod([P3(-18.5, 4.2, 0.65), P3(-18.5, 4.2, 2.58), P3(-18.5, -10, 2.58)], 0.3, M.steel, b90); polyRod([P3(-18.5, 4.2, -5.65), P3(-18.5, 4.2, -7.58), P3(-18.5, -10, -7.58)], 0.3, M.steel, b90);
+  const clip = staged(new THREE.Group(), 'clipped'); g.add(clip);                      // step 49: bent 45 degrees, soldered and clipped underneath
+  polyRod([P3(-18.5, 4.2, 0.65), P3(-18.5, 4.2, 2.58), P3(-18.5, -0.6, 2.58), P3(-18.5, -1.6, 3.6)], 0.3, M.steel, clip); polyRod([P3(-18.5, 4.2, -5.65), P3(-18.5, 4.2, -7.58), P3(-18.5, -0.6, -7.58), P3(-18.5, -1.6, -8.6)], 0.3, M.steel, clip);
+  [2.58, -7.58].forEach(z => { const j = new THREE.Mesh(new THREE.SphereGeometry(0.9, 8, 6), M.steel); j.position.set(-18.5, -0.3, z); clip.add(j); });
+  return shadow(g);
+}
+export function bleachBottle() { const g = group('household bleach'); const pts = [V2(0, 0), V2(34, 0), V2(36, 4), V2(36, 150), V2(16, 170), V2(16, 182), V2(0, 182)]; g.add(new THREE.Mesh(new THREE.LatheGeometry(pts, 32), M.white)); g.add(cyl(17, 14, M.capBlue, 0, 188, 0, 'y', 24)); g.add(box(40, 50, 0.6, M.label, 0, 80, 36.2)); return shadow(g); }
+export function autoclaveTapeRoll() { const geo = new THREE.TorusGeometry(24, 6, 10, 32); geo.rotateX(Math.PI / 2); geo.scale(1, 2.6, 1); geo.translate(0, 15.6, 0); return shadow(group('autoclave tape', new THREE.Mesh(geo, M.tape))); }

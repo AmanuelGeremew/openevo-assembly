@@ -3,6 +3,7 @@ import { createScene } from './scene.js';
 import { buildAssembly, STL, TX, TZ, C_TOP } from './assembly.js';
 import { buildWires } from './wires.js';
 import { buildLabware, buildWireProps } from './labware.js';
+import { buildBaseMaterials, kitPlan, kitGroups } from './kit.js';
 import { makeSteps, CHAPTERS, VIEWS, FRAMES } from './steps.js';
 import { compileTimeline, applyTimeline, cameraAt } from './timeline.js';
 import { DATA } from './data.js';
@@ -28,6 +29,8 @@ function applyTheme() { document.documentElement.dataset.theme = dark ? 'dark' :
 const S = createScene($('#view'));
 applyTheme();
 const root = new THREE.Group(); root.name = 'OpenEvo'; S.scene.add(root);
+{ const k = S.lights.key, sc = k.shadow.camera; k.target.position.set(0, 0, -420); k.position.set(260, 520, -120); sc.left = -1250; sc.right = 1250; sc.top = 1250; sc.bottom = -1250; sc.far = 1900; sc.updateProjectionMatrix(); k.shadow.mapSize.set(4096, 4096);
+  S.ground.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.geometry = new THREE.PlaneGeometry(6000, 6000); } if (o.material?.uniforms?.uFade) o.material.uniforms.uFade.value = 2300; }); }
 const ldFill = $('#ldFill'), ldText = $('#ldText');
 const T0 = performance.now();
 const { parts, printFrame, prims } = await buildAssembly(root, p => { ldFill.style.width = (p * 75).toFixed(0) + '%'; });
@@ -37,6 +40,7 @@ await new Promise(r => setTimeout(r, 20));
 const wires = buildWires(parts, root, { prims, printFrame });
 const lab = buildLabware(parts); for (const id in lab) { root.add(lab[id].obj); parts[id] = lab[id]; }
 const props = buildWireProps(wires.map(w => w.userData.spec)); for (const id in props) { root.add(props[id].obj); parts[id] = props[id]; }
+const raw = buildBaseMaterials(); for (const id in raw) { root.add(raw[id].obj); parts[id] = raw[id]; }
 const bed = buildPrintBed(parts);
 const T2 = performance.now();
 ldFill.style.width = '90%';
@@ -61,8 +65,14 @@ const slugs = []; for (let i = 0; i < 12; i++) { const m = new THREE.Mesh(new TH
 
 // ------------------------------------------------------------------ timeline
 const bedM = {}; for (const id in bed.poses) bedM[id] = new THREE.Matrix4().compose(bed.poses[id].p, bed.poses[id].q, new THREE.Vector3(1, 1, 1));
-const STEPS = makeSteps({ bedPoses: bedM });
-const tl = compileTimeline({ steps: STEPS, parts, wires, views: VIEWS, frames: FRAMES });
+// the base materials laid out on the table: everything starts here
+const kit = kitPlan(parts, bedM);
+const kitG = kitGroups(parts);
+const wireColor = Object.fromEntries(wires.map(w => ['prep:' + w.userData.spec.id, w.userData.spec.color]));
+const BOX1 = ['black', 'red', 'orange', 'yellow', 'green', 'blue'];
+const crimped = kitG.wires.filter(id => /female|male/.test(wires.find(w => 'prep:' + w.userData.spec.id === id)?.userData.spec.ends || ''));
+const STEPS = makeSteps({ bedPoses: bedM, purchased: [...kitG.electronics, ...kitG.hardware, ...kitG.materials], wireBox: id => BOX1.includes(wireColor[id]) ? 'kitWire1' : 'kitWire2', prepIds: kitG.wires, crimped });
+const tl = compileTimeline({ steps: STEPS, parts, wires, views: VIEWS, frames: FRAMES, kit });
 const stepIndex = id => tl.steps.findIndex(s => s.id === id);
 const growthCurve = simulateIncubation();
 
@@ -101,7 +111,7 @@ S.controls.addEventListener('start', () => { userCam = true; camTween = null; })
 // ------------------------------------------------------------------ names, all in the manual's / checklist's words
 const PART_NAME = { mega: 'Arduino MEGA', bus5V: '5V rail', busGND: 'GND Rail', bus12V: '12V rail', busGND2: 'Ground Rail', mux: 'I2C Multiplexer', ledCtl: 'LED Controller Board',
   stirCtl: 'Stirring Motor Controller', heaterCtl: 'Heater Controller Board', shield: 'Motor Shield', btnUp: 'Button UP', btnSel: 'Button SEL', btnDown: 'Button DOWN', lcd: 'LCD Screen’s I2C board',
-  sd: 'microSD module', fan: 'stirring fan', heater: 'Heater Plate', thermHeater: 'Heater Module thermistor', thermoNeedle: 'thermistor needle', converter: '12V-to-5V converter', rocker: 'Rocker Switch',
+  sd: 'microSD module', fan: 'stirring fan', heater: 'Heater Plate', thermHeater: 'Heater Module thermistor', needleHdr: 'thermistor needle', converter: '12V-to-5V converter', rocker: 'Rocker Switch',
   jack: 'Barrel Jack', rtc: 'Real-Time Clock', tsl: 'TSL2591', odLed: '940nm LED' };
 const NUM = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six'];
 function pinName(id, pin) {
@@ -116,7 +126,7 @@ function pinName(id, pin) {
   else if (id === 'shield') p = { GND12: 'shared ground (M1/M2)', GND34: 'shared ground (M3/M4)', 'POWER+': 'Power(+)', 'POWER-': 'Power(-)' }[pin] || pin.slice(0, 2);
   else if (id === 'fan') p = pin === '+' ? 'red lead' : 'black lead';
   else if (id === 'heater') p = 'lead';
-  else if (id === 'thermHeater' || id === 'thermoNeedle') p = pin === 'S' ? 'middle pin' : 'flanking pin';
+  else if (id === 'thermHeater' || id === 'needleHdr') p = pin === 'S' ? 'middle pin' : 'flanking pin';
   else if (id === 'converter') p = { 'IN+': 'positive 12V input', 'IN-': 'negative input (IN)', 'OUT+': '5V output positive', 'OUT-': '5V output negative' }[pin] || pin;
   else if (id === 'rocker') p = pin === 'a' ? 'rightmost blade' : 'opposite blade';
   else if (id === 'jack') p = pin === '+' ? 'center pin' : 'ground flap';
@@ -400,7 +410,7 @@ const restNeedle = new THREE.Matrix4().compose(new THREE.Vector3(-120, 6, 40), n
 let lastProbeKey = '';
 function updateProbe(k, ev, intro) {
   const mode = intro ? 'needle' : probeMode(k);
-  const nW = mode === 'needle' ? (ev.worldOf('thermoNeedle') || parts.thermoNeedle.obj.matrix) : restNeedle;
+  const nW = mode === 'needle' ? (ev.worldOf('needleHdr') || parts.needleHdr.obj.matrix) : restNeedle;
   const rW = ev.worldOf('robot') || _m4.identity();
   const key = nW.elements.map(v => v.toFixed(2)).join() + rW.elements.map(v => v.toFixed(2)).join();
   if (key === lastProbeKey) return; lastProbeKey = key;
@@ -493,7 +503,7 @@ window.addEventListener('hashchange', () => {
   const k = stepIndex(location.hash.slice(1));
   if (k >= 0 && k !== tl.stepAt(t)) { goStep(k, false); setTime(tl.steps[k].t0 + (k ? tl.steps[k].dur - 0.06 : 0)); }
 });
-setTool('rotate', startK === 0);
+setTool('rotate', false);
 const clock = new THREE.Clock();
 const head = $('#tlHead');
 S.renderer.shadowMap.autoUpdate = false; let lastVis = -1, shadowKick = 3;
@@ -519,7 +529,7 @@ function frameBody(rawDt, noRender = false) {
   }
   const k = tl.stepAt(t), s = tl.steps[k];
   if (k !== lastStep) { renderCard(k); lastStep = k; if (!scrubbing) userCam = false; camTween = null; }
-  const res = applyTimeline(tl, t, { hideWires: !tools.wires, introFinal: true }); const glow = res.glow;
+  const res = applyTimeline(tl, t, { hideWires: !tools.wires }); const glow = res.glow;
   if (res.moving || res.vis !== lastVis || shadowKick > 0) { S.renderer.shadowMap.needsUpdate = true; shadowKick = Math.max(0, shadowKick - 1); }
   lastVis = res.vis;
   const local = k === 0 ? clock.elapsedTime : t - s.t0;

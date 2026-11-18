@@ -11,7 +11,7 @@ const easeOut = t => 1 - Math.pow(1 - Math.min(1, Math.max(0, t)), 3);
 const D2R = Math.PI / 180;
 const DUR = { in: 1.15, move: 1.7, out: 0.9, robot: 2.2, grow: 1.9, show: 0.5 };
 
-export function compileTimeline({ steps, parts, wires, views, frames = {} }) {
+export function compileTimeline({ steps, parts, wires, views, frames = {}, kit = {} }) {
   const ids = Object.keys(parts);
   const match = pat => {
     if (Array.isArray(pat)) return pat.flatMap(match);
@@ -23,21 +23,22 @@ export function compileTimeline({ steps, parts, wires, views, frames = {} }) {
     const o = parts[id].obj; o.updateMatrix();
     const bb = new THREE.Box3();
     o.traverse(m => { if (m.isMesh && m.geometry) { m.geometry.computeBoundingBox(); if (!m.geometry.boundingBox.isEmpty()) { m.updateMatrixWorld(true); bb.union(m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld)); } } });
-    P[id] = { id, obj: o, finalW: o.matrix.clone(), finalInv: o.matrix.clone().invert(), frame0: id in frames ? frames[id] : parts[id].frame ?? null, bb, segs: [], firstStep: null, cur: null };
+    P[id] = { id, obj: o, finalW: o.matrix.clone(), finalInv: o.matrix.clone().invert(), frame0: id in frames ? frames[id] : parts[id].frame ?? null, bb, segs: [], stages: [], firstStep: null, cur: null };
     o.matrixAutoUpdate = false;
   }
   const finalState = id => ({ frame: P[id].frame0, M: P[id].finalW });
   // ---- pose resolution
   function resolve(id, spec) {
     if (!spec || spec === 'final') return finalState(id);
+    if (spec === 'kit') { if (!P[id].kitState) throw new Error('no kit pose for ' + id); return P[id].kitState; }
     if (spec.frame !== undefined && spec.M) return spec;
     if (spec.off) {              // final pose shifted in its frame's coordinates (pre-mate poses, slide-on waypoints)
       const fr = spec.frame !== undefined ? spec.frame : P[id].frame0;
       return { frame: fr, M: new THREE.Matrix4().makeTranslation(...spec.off).multiply(P[id].finalW) };
     }
     if (spec.shift) return { frame: spec.relTo || null, M: new THREE.Matrix4().makeTranslation(...spec.shift).multiply(P[id].finalW) };
-    if (spec.bench) {            // on the bench: rotate the part about its centre (world euler applied to its assembled orientation)
-      const R = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(...(spec.r || [0, 0, 0]).map(v => v * D2R), spec.order || 'XYZ'));
+    if (spec.bench) {            // resting on the table: rotate about the part's centre (world rotation applied to its assembled orientation)
+      const R = spec.q ? new THREE.Matrix4().makeRotationFromQuaternion(new THREE.Quaternion(...spec.q)) : new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(...(spec.r || [0, 0, 0]).map(v => v * D2R), spec.order || 'XYZ'));
       const c = P[id].bb.getCenter(new THREE.Vector3());
       const M0 = R.clone().multiply(new THREE.Matrix4().makeTranslation(-c.x, -c.y, -c.z)).multiply(P[id].finalW);
       const bb = P[id].bb.clone().applyMatrix4(new THREE.Matrix4().makeTranslation(-c.x, -c.y, -c.z)).applyMatrix4(R);
@@ -45,14 +46,24 @@ export function compileTimeline({ steps, parts, wires, views, frames = {} }) {
       return { frame: spec.relTo || null, M: new THREE.Matrix4().makeTranslation(spec.bench[0], y, spec.bench[1]).multiply(M0) };
     }
     if (spec.world) return { frame: null, M: new THREE.Matrix4().compose(new THREE.Vector3(...spec.world), new THREE.Quaternion().setFromEuler(new THREE.Euler(...(spec.r || [0, 0, 0]).map(v => v * D2R))), new THREE.Vector3(1, 1, 1)) };
-    if (spec.like) {             // same relative pose another part has to its frame (e.g. ride on a holder)
-      return { frame: spec.like, M: P[id].finalW };
-    }
+    if (spec.like) return { frame: spec.like, M: P[id].finalW };
+    if (spec.on) return { frame: spec.on, M: spec.M || P[id].finalW };
+    if (spec.as) return { frame: P[spec.as].frame0, M: P[spec.as].finalW };   // where another part sits when assembled
     throw new Error('bad pose for ' + id + ': ' + JSON.stringify(spec));
   }
   const W = wires.map(w => ({ w, spec: w.userData.spec, segs: [], follow: w.userData.follow }));
   const wireById = Object.fromEntries(W.map(x => [x.spec.id, x]));
   const out = { steps: [], parts: P, wires: W, total: 0, views };
+  // ---- the base materials: every kit part lies on the table from the first frame
+  for (const id in kit) {
+    if (!P[id]) continue;
+    const k = kit[id]; P[id].kitState = resolve(id, k.spec);
+    if (k.show !== false) { P[id].segs.push({ kind: 'show', t0: 0, t1: 0.001, from: P[id].kitState, to: P[id].kitState, noGlow: true }); P[id].cur = P[id].kitState; }
+  }
+  // world pose of a state at a time while compiling (for flight lengths and raw-material sources)
+  const view = { parts: P };
+  const worldAt = (state, time) => { for (const id in P) P[id].segs.sort((a, b) => a.t0 - b.t0); const ev = makeEval(view, time); const d = ev.frameDelta(state.frame); return d ? d.multiply(state.M) : state.frame ? P[state.frame].finalW.clone().multiply(P[state.frame].finalInv).multiply(state.M) : state.M.clone(); };
+  const centerOf = (id, Wm) => P[id].bb.getCenter(new THREE.Vector3()).applyMatrix4(Wm.clone().multiply(P[id].finalInv));
   let t = 0;
   for (let si = 0; si < steps.length; si++) {
     const st = steps[si];
@@ -80,27 +91,45 @@ export function compileTimeline({ steps, parts, wires, views, frames = {} }) {
         const p = P[id], t0 = start + i * stag;
         let d = opts.dur;
         const pick = sp => typeof sp === 'function' ? sp(id, i) : (opts.row && sp === undefined ? { bench: [opts.row[0] + i * (opts.row[2] ?? 8), opts.row[1] + i * (opts.row[3] ?? 0)], r: opts.r } : sp);
-        if (kind === 'in') {
-          const to = resolve(id, pick(opts.to)); const off = opts.from || (to.frame ? [0, 70, 0] : [0, 80, 0]);
-          const from = { frame: to.frame, M: new THREE.Matrix4().makeTranslation(...off).multiply(to.M) };
-          d = d || DUR.in;
-          p.segs.push({ kind: 'in', t0, t1: t0 + d, from, to, via: (opts.via || []).map(v => resolve(id, v)) }); p.cur = to; touch(id);
+        // a move whose length sets its duration and lift (parts carried across the table from the base materials)
+        const carry = (from, to, kindName, viaSpecs) => {
+          const A = centerOf(id, worldAt(from, t0)), B = centerOf(id, worldAt(to, t0)), dist = A.distanceTo(B);
+          const dd = d || Math.min(2.8, Math.max(kindName === 'move' ? DUR.move : 1.3, 0.9 + dist / 650));
+          p.segs.push({ kind: kindName, t0, t1: t0 + dd, from, to, arc: opts.arc ?? Math.min(150, Math.max(35, dist * 0.16)), via: viaSpecs }); d = dd;
+        };
+        if (kind === 'in' || kind === 'move' || kind === 'back') {
+          const to = kind === 'back' ? resolve(id, 'kit') : resolve(id, pick(kind === 'move' ? (a.to !== undefined ? a.to : a) : opts.to));
+          const via = (opts.via || []).map(v => resolve(id, v));
+          const src = typeof opts.src === 'function' ? opts.src(id, i) : opts.src;
+          // taken from where it lies; a fly-in offset becomes the direction it is inserted from
+          if (p.cur) { if (opts.from && kind === 'in') via.push({ frame: to.frame, M: new THREE.Matrix4().makeTranslation(...opts.from).multiply(to.M) }); carry(p.cur, to, 'move', via); }
+          else if (src) {                                        // made from a raw material (wire cut from a spool, tube cut from the coil...)
+            const srcW = worldAt(P[src].cur || resolve(src, 'kit'), t0), tgtW = worldAt(to, t0);
+            const dlt = centerOf(src, srcW).sub(centerOf(id, tgtW)); dlt.y += 25;
+            const from = { frame: null, M: new THREE.Matrix4().makeTranslation(dlt.x, dlt.y, dlt.z).multiply(tgtW) };
+            carry(from, to, 'in', via);
+          } else {                                                    // no source: comes in from above (only for things the manual does not list as a material)
+            const off = opts.from || (to.frame ? [0, 70, 0] : [0, 80, 0]);
+            const from = { frame: to.frame, M: new THREE.Matrix4().makeTranslation(...off).multiply(to.M) };
+            d = d || DUR.in;
+            p.segs.push({ kind: 'in', t0, t1: t0 + d, from, to, via });
+          }
+          p.cur = to; touch(id);
         } else if (kind === 'show') {
           const to = resolve(id, pick(opts.to)); d = d || DUR.show;
           p.segs.push({ kind: 'show', t0, t1: t0 + d, from: to, to }); p.cur = to; touch(id);
-        } else if (kind === 'move') {
-          const from = p.cur || finalState(id); const to = resolve(id, pick(a.to !== undefined ? a.to : a));
-          d = d || DUR.move;
-          p.segs.push({ kind: 'move', t0, t1: t0 + d, from, to, arc: opts.arc ?? 40, via: (opts.via || []).map(v => resolve(id, v)) }); p.cur = to; touch(id);
         } else if (kind === 'out') {
           const from = p.cur || finalState(id); d = d || DUR.out;
           p.segs.push({ kind: 'out', t0, t1: t0 + d, from, to: from, offW: new THREE.Vector3(...(opts.dir || [0, 110, 0])) }); p.cur = null;
         } else if (kind === 'glow') {
           const cur = p.cur || finalState(id); d = d || 1.2;
-          p.segs.push({ kind: 'show', t0, t1: t0 + d, from: cur, to: cur }); touch(id);
+          p.segs.push({ kind: 'show', t0, t1: t0 + d, from: cur, to: cur }); if (!s.adds.includes(id)) s.adds.push(id);   // a highlight is not the step that uses the part
         } else if (kind === 'hide') {
           const from = p.cur || finalState(id);
           p.segs.push({ kind: 'out', t0, t1: t0 + 0.01, from, to: from, offW: new THREE.Vector3() }); p.cur = null; d = 0.01;
+        } else if (kind === 'stage') {
+          p.stages.push({ t: t0 + (opts.at ?? 0.6), name: opts.name || 'headers', on: opts.on !== false }); d = 1.2; touch(id);
+          if (p.cur) p.segs.push({ kind: 'show', t0, t1: t0 + 1.2, from: p.cur, to: p.cur });
         } else throw new Error('unknown action ' + kind);
         last = Math.max(last, t0 + d);
       });
@@ -120,13 +149,16 @@ export function compileTimeline({ steps, parts, wires, views, frames = {} }) {
     t += s.dur;
   }
   out.total = t;
-  // a prepared loose wire leaves the bench when its real wire starts to grow
+  // a prepared loose wire becomes the installed wire: it leaves the table when that wire starts to grow
+  for (const id in P) P[id].segs.sort((a, b) => a.t0 - b.t0);
   for (const x of W) {
     const pp = P['prep:' + x.spec.id]; if (!pp || !x.segs.length || !pp.segs.length) continue;
-    const g0 = x.segs[0].t0, last = pp.segs[pp.segs.length - 1];
-    if (last.kind !== 'out' && pp.segs[0].t0 < g0) pp.segs.push({ kind: 'out', t0: g0, t1: g0 + 0.6, from: last.to, to: last.to, offW: new THREE.Vector3(0, 40, 0) });
+    const g0 = x.segs[0].t0, last = pp.segs.filter(s => s.t0 <= g0).pop();
+    if (last && last.kind !== 'out') pp.segs.push({ kind: 'out', t0: g0, t1: g0 + 0.6, from: last.to, to: last.to, offW: new THREE.Vector3(0, 25, 0) });
   }
-  for (const id in P) P[id].segs.sort((a, b) => a.t0 - b.t0);
+  for (const id in P) { P[id].segs.sort((a, b) => a.t0 - b.t0); P[id].stages.sort((a, b) => a.t - b.t); }
+  const stepT = id => { const st = out.steps.find(x => x.id === id); return st ? st.t0 + Math.min(2.5, st.dur * 0.4) : null; };
+  for (const x of W) { if (x.spec.markAt) x.markT = stepT(x.spec.markAt); if (x.spec.twistAt) x.twistT = stepT(x.spec.twistAt); }
   out.stepAt = time => { let k = 0; for (let i = 0; i < out.steps.length; i++) if (time >= out.steps[i].t0 - 1e-6) k = i; return k; };
   out.finalState = finalState;
   return out;
@@ -141,7 +173,7 @@ function makeEval(tl, tt) {
     const Wf = worldOf(f); if (!Wf) return null;
     return Wf.clone().multiply(tl.parts[f].finalInv);
   }
-  function stateW(s) { const d = frameDelta(s.frame); return d ? d.multiply(s.M) : s.M.clone(); }
+  function stateW(s) { if (!s.frame) return s.M.clone(); const d = frameDelta(s.frame); return d ? d.multiply(s.M) : null; }
   function lerpW(A, B, e, arc, out) {
     A.decompose(_pa, _qa, _sa); B.decompose(_pb, _qb, _sb);
     _pa.lerp(_pb, e); if (arc) _pa.y += Math.sin(Math.PI * e) * arc; _qa.slerp(_qb, e); _sa.lerp(_sb, e);
@@ -149,11 +181,12 @@ function makeEval(tl, tt) {
   }
   function pathW(seg, e) {
     const pts = [seg.from, ...(seg.via || []), seg.to].map(stateW);
+    if (pts.some(m => !m)) return null;
     if (pts.length === 2) return lerpW(pts[0], pts[1], e, seg.arc, new THREE.Matrix4());
     const pos = pts.map(m => new THREE.Vector3().setFromMatrixPosition(m));
     const L = []; let tot = 0; for (let i = 1; i < pos.length; i++) { const d = pos[i].distanceTo(pos[i - 1]) + 1e-3; L.push(d); tot += d; }
     let u = e * tot, i = 0; while (i < L.length - 1 && u > L[i]) { u -= L[i]; i++; }
-    return lerpW(pts[i], pts[i + 1], Math.min(1, u / L[i]), 0, new THREE.Matrix4());
+    return lerpW(pts[i], pts[i + 1], Math.min(1, u / L[i]), i === 0 ? seg.arc || 0 : 0, new THREE.Matrix4());   // the carry from the table lifts over the first leg
   }
   // returns world matrix or null when hidden
   function worldOf(id) {
@@ -165,20 +198,28 @@ function makeEval(tl, tt) {
       // never placed yet: frames that hold other parts fall back to their first state (or the assembled pose)
       res = null;
     } else if (tt >= s.t1) {
-      if (s.kind !== 'out') { res = stateW(s.to); info.vis = true; }
+      if (s.kind !== 'out') { res = stateW(s.to); info.vis = !!res; }
     } else {
       const u = (tt - s.t0) / (s.t1 - s.t0);
       info.moving = true;
-      if (s.kind === 'out') { res = stateW(s.from); const e = ease(u); res.elements[12] += s.offW.x * e; res.elements[13] += s.offW.y * e; res.elements[14] += s.offW.z * e; info.vis = u < 0.92; }
-      else if (s.kind === 'show') { res = stateW(s.to); info.vis = true; }
-      else { const e = s.kind === 'move' ? ease(u) : easeOut(u); res = pathW(s, e); info.vis = true; }
+      if (s.kind === 'out') { res = stateW(s.from); if (res) { const e = ease(u); res.elements[12] += s.offW.x * e; res.elements[13] += s.offW.y * e; res.elements[14] += s.offW.z * e; } info.vis = !!res && u < 0.92; }
+      else if (s.kind === 'show') { res = stateW(s.to); info.vis = !!res; }
+      else { const e = s.kind === 'move' ? ease(u) : easeOut(u); res = pathW(s, e); info.vis = !!res; }
     }
-    if (s && s.kind !== 'out') { const since = tt - s.t0, dur = s.t1 - s.t0; if (since >= 0 && since < dur + 1.4) info.glow = since < dur ? 1 : Math.max(0, 1 - (since - dur) / 1.4); }
+    if (s && s.kind !== 'out' && !s.noGlow) { const since = tt - s.t0, dur = s.t1 - s.t0; if (since >= 0 && since < dur + 1.4) info.glow = since < dur ? 1 : Math.max(0, 1 - (since - dur) / 1.4); }
     P.info = info;
     cache.set(id, res);
     return res;
   }
   return { worldOf, frameDelta };
+}
+
+function applyStages(P, tt) {
+  const want = {};
+  for (const e of P.stages) if (!(e.name in want)) want[e.name] = !e.on;   // before its first event a stage is in the opposite state
+  for (const e of P.stages) if (e.t <= tt) want[e.name] = e.on;
+  const key = JSON.stringify(want); if (P.stageKey === key) return; P.stageKey = key;
+  P.obj.traverse(o => { if (o.userData.stage && o.userData.stage in want) o.visible = want[o.userData.stage]; });
 }
 
 // Apply the timeline at time `time`. Returns glow per part and whether anything moves.
@@ -193,6 +234,7 @@ export function applyTimeline(tl, time, opts = {}) {
     const info = P.info || { vis: false };
     if (!Wm || !info.vis) { o.visible = false; continue; }
     o.visible = true; o.matrix.copy(Wm); o.matrixWorldNeedsUpdate = true;
+    if (P.stages.length) applyStages(P, tt);
     if (info.moving) moving = true;
     vis++;
     if (!intro && info.glow > 0.01 && P.segs.length) glow[id] = info.glow;
@@ -201,10 +243,12 @@ export function applyTimeline(tl, time, opts = {}) {
     let f = 0; const segs = x.segs;
     for (let i = segs.length - 1; i >= 0; i--) { const s = segs[i]; if (tt >= s.t0) { if (tt < s.t1) moving = true; f = tt >= s.t1 ? s.f1 : s.f0 + (s.f1 - s.f0) * easeOut((tt - s.t0) / (s.t1 - s.t0)); break; } }
     const g = x.w;
+    if (x.twistT != null) g.userData.setTwist(tt >= x.twistT);
+    if (x.markT != null) g.userData.setMark(tt >= x.markT);
     g.userData.setGrow(opts.hideWires ? 0 : f);
     if (f > 0) {
       const d = ev.frameDelta(x.follow);
-      g.matrixAutoUpdate = false; if (d) g.matrix.copy(d); else g.matrix.identity(); g.matrixWorldNeedsUpdate = true;
+      g.matrixAutoUpdate = false; if (d) g.matrix.copy(d); else { g.matrix.identity(); if (x.follow) g.visible = false; } g.matrixWorldNeedsUpdate = true;
       vis++;
     }
   }

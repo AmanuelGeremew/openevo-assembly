@@ -27,7 +27,7 @@ export function wireSpecs() {
   const rail = (b, front = true) => [b, 'p' + (b === 'bus12V' || b === 'busGND2' ? R[b]++ : front ? R[b]-- : 19 - (R[b + 'back'] = (R[b + 'back'] ?? -1) + 1))];
 
   // steps 4-6 / 71: buttons
-  add('btnBridge', 'bare', ['btnUp', 'gnd'], ['btnDown', 'gnd'], 'bare-bare', 'bridge', [['h4', 1]], { via: [['btnSel', 'gnd']], r: 0.45 });
+  add('btnBridge', 'bare', ['btnUp', 'gnd'], ['btnDown', 'gnd'], 'bare-bare', 'bridge', [['h4', 1]], { via: [['btnSel', 'gnd']], r: 0.45, cm: 8, propColor: 'black' });
   add('btnUP', 'blue', ['btnUp', 'sig'], ['mega', 'D26'], 'solder-male', 'faceBtn', [['h6', 0.17], ['h71', 1]], { cm: 38 });
   add('btnSEL', 'white', ['btnSel', 'sig'], ['mega', 'D24'], 'solder-male', 'faceBtn', [['h6', 0.17], ['h71', 1]], { cm: 37 });
   add('btnDOWN', 'green', ['btnDown', 'sig'], ['mega', 'D22'], 'solder-male', 'faceBtn', [['h6', 0.17], ['h71', 1]], { cm: 36 });
@@ -46,13 +46,13 @@ export function wireSpecs() {
   add('lcdSCL', 'green', ['lcd', 'SCL'], ['mux', 'SC0'], 'female-female', 'faceLcd', [['h10', 0.13], ['h70', 1]], { cm: 38 });
 
   // steps 15 / 59 / 60: stirring fan
-  add('fanPos', 'orange', ['fan', '+'], ['stirCtl', 'OUT2'], 'solder-screw', 'towerD', [['h15', 0.12], ['h59', 0.8], ['h60', 1]], { cm: 28 });
-  add('fanGnd', 'black', ['fan', '-'], ['stirCtl', 'OUT1'], 'solder-screw', 'towerD', [['h15', 0.12], ['h59', 0.8], ['h60', 1]], { cm: 28 });
+  add('fanPos', 'orange', ['fan', '+'], ['stirCtl', 'OUT2'], 'solder-screw', 'towerD', [['h15', 0.12], ['h59', 0.8], ['h60', 1]], { cm: 28, shrink: 'a' });
+  add('fanGnd', 'black', ['fan', '-'], ['stirCtl', 'OUT1'], 'solder-screw', 'towerD', [['h15', 0.12], ['h59', 0.8], ['h60', 1]], { cm: 28, shrink: 'a' });
   // steps 17 / 59 / 61: heater plate (two orange wires on each lead)
-  add('htrTL', 'orange', ['heater', 'a'], ['heaterCtl', 'OUT1'], 'solder-screw', 'towerD', [['h17', 0.12], ['h59', 0.78], ['h61', 1]], { cm: 28 });
-  add('htrTR', 'orange', ['heater', 'a'], ['heaterCtl', 'OUT2'], 'solder-screw', 'towerD', [['h17', 0.12], ['h59', 0.78], ['h61', 1]], { cm: 28 });
-  add('htrBL', 'orange', ['heater', 'b'], ['heaterCtl', 'OUT3'], 'solder-screw', 'towerD', [['h17', 0.12], ['h59', 0.78], ['h61', 1]], { cm: 28 });
-  add('htrBR', 'orange', ['heater', 'b'], ['heaterCtl', 'OUT4'], 'solder-screw', 'towerD', [['h17', 0.12], ['h59', 0.78], ['h61', 1]], { cm: 28 });
+  add('htrTL', 'orange', ['heater', 'a'], ['heaterCtl', 'OUT1'], 'solder-screw', 'towerD', [['h17', 0.12], ['h59', 0.78], ['h61', 0.97], ['h62', 1]], { cm: 28, shrink: 'a' });
+  add('htrTR', 'orange', ['heater', 'a'], ['heaterCtl', 'OUT2'], 'solder-screw', 'towerD', [['h17', 0.12], ['h59', 0.78], ['h61', 0.97], ['h62', 1]], { cm: 28, shrink: 'a' });
+  add('htrBL', 'orange', ['heater', 'b'], ['heaterCtl', 'OUT3'], 'solder-screw', 'towerD', [['h17', 0.12], ['h59', 0.78], ['h61', 0.97], ['h62', 1]], { cm: 28, shrink: 'a' });
+  add('htrBR', 'orange', ['heater', 'b'], ['heaterCtl', 'OUT4'], 'solder-screw', 'towerD', [['h17', 0.12], ['h59', 0.78], ['h61', 0.97], ['h62', 1]], { cm: 28, shrink: 'a' });
   // step 86: heater thermistor
   add('thBrown', 'brown', ['thermHeater', 'S'], ['mega', 'A9'], 'female-male', 'towerD', [['h86', 1]], { cm: 26 });
   add('thRed', 'red', ['thermHeater', '+'], ['bus5V', 'p3'], 'female-male', 'towerD', [['h86', 1]], { cm: 20 });
@@ -61,17 +61,17 @@ export function wireSpecs() {
   // steps 29-30 / 69: pumps; + (unmarked) to the outer terminal, - (marked) to the shared ground
   const term = [['M1a', 'GND12'], ['M2b', 'GND12'], ['M3a', 'GND34'], ['M4b', 'GND34']];
   for (let i = 0; i < 4; i++) {
-    add(`pump${i}P`, 'orange', ['pump' + i, '+'], ['shield', term[i][0]], 'solder-screw', 'arc', [['h29', 0.12], ['h69', 1]], { pair: 'pump' + i, phase: 0, cm: 20, lift: 26 });
-    add(`pump${i}N`, 'orange', ['pump' + i, '-'], ['shield', term[i][1]], 'solder-screw', 'arc', [['h29', 0.12], ['h69', 1]], { pair: 'pump' + i, phase: Math.PI, cm: 20, lift: 26, mark: true });
+    add(`pump${i}P`, 'orange', ['pump' + i, '+'], ['shield', term[i][0]], 'solder-screw', 'arc', [['h29', 0.12], ['h69', 1]], { pair: 'pump' + i, phase: 0, cm: 20, lift: 26, shrink: 'a', twistAt: 'h30' });
+    add(`pump${i}N`, 'orange', ['pump' + i, '-'], ['shield', term[i][1]], 'solder-screw', 'arc', [['h29', 0.12], ['h69', 1]], { pair: 'pump' + i, phase: Math.PI, cm: 20, lift: 26, mark: true, markAt: 'h30', shrink: 'a', twistAt: 'h30' });
   }
 
   // steps 31-40: power wiring (soldered)
-  add('cvOutP', 'red', ['bus5V', 'lead'], ['converter', 'OUT+'], 'solder-solder', 'leftWall', [['h33', 1]], { cm: 20 });
-  add('cvOutN', 'black', ['busGND', 'lead'], ['converter', 'OUT-'], 'solder-solder', 'leftWall', [['h33', 1]], { cm: 20 });
-  add('cvInP', 'orange', ['converter', 'IN+'], ['rocker', 'b'], 'solder-solder', 'arc', [['h31', 0.35], ['h39', 1]], { cm: 5 });
-  add('cvInN', 'black', ['converter', 'IN-'], ['jack', '-'], 'solder-solder', 'arc', [['h31', 0.3], ['h40', 1]], { cm: 8 });
-  add('lead12V', 'orange', ['bus12V', 'lead'], ['rocker', 'b'], 'solder-solder', 'gap12', [['h34', 0.55], ['h39', 1]], { cm: 20 });
-  add('leadGND2', 'black', ['busGND2', 'lead'], ['jack', '-'], 'solder-solder', 'gap12', [['h34', 0.55], ['h40', 1]], { cm: 20, lift: 2 });
+  add('cvOutP', 'red', ['bus5V', 'lead'], ['converter', 'OUT+'], 'solder-solder', 'leftWall', [['h32', 0.3], ['h33', 1]], { cm: 20, shrink: 'b' });
+  add('cvOutN', 'black', ['busGND', 'lead'], ['converter', 'OUT-'], 'solder-solder', 'leftWall', [['h32', 0.3], ['h33', 1]], { cm: 20, shrink: 'b' });
+  add('cvInP', 'orange', ['converter', 'IN+'], ['rocker', 'b'], 'solder-solder', 'arc', [['h31', 0.35], ['h39', 1]], { cm: 5, shrink: 'a' });
+  add('cvInN', 'black', ['converter', 'IN-'], ['jack', '-'], 'solder-solder', 'arc', [['h31', 0.3], ['h40', 1]], { cm: 8, shrink: 'a' });
+  add('lead12V', 'orange', ['bus12V', 'lead'], ['rocker', 'b'], 'solder-solder', 'gap12', [['h32', 0.3], ['h34', 0.55], ['h39', 1]], { cm: 20 });
+  add('leadGND2', 'black', ['busGND2', 'lead'], ['jack', '-'], 'solder-solder', 'gap12', [['h32', 0.3], ['h34', 0.55], ['h40', 1]], { cm: 20, lift: 2 });
   add('rockerJack', 'orange', ['rocker', 'a'], ['jack', '+'], 'solder-solder', 'arc', [['h36', 0.4], ['h37', 1]], { cm: 5 });
   // steps 63-64, 67, 68: 12 V consumers
   add('htc12V', 'orange', ['heaterCtl', '12V'], ['bus12V', 'p0'], 'screw-male', 'underHtc', [['h64', 1]], { cm: 11 });
@@ -103,9 +103,9 @@ export function wireSpecs() {
   add('mega5V', 'red', ['mega', '5V'], ['bus5V', 'p7'], 'male-male', 'arc', [['h85', 1]], { cm: 10 });
 
   // step 87 / testing 17-18: thermistor needle cable, loosely braided; grows from the Arduino side
-  add('probeS', 'pink', ['mega', 'A8'], ['thermoNeedle', 'S'], 'male-female', 'probe', [['h87', 1]], { braid: 'probe', phase: 0, cm: 38 });
-  add('probeV', 'red', ['bus5V', 'p9'], ['thermoNeedle', '+'], 'male-female', 'probe', [['h87', 1]], { braid: 'probe', phase: 2.09, cm: 38 });
-  add('probeG', 'black', ['busGND', 'p9'], ['thermoNeedle', '-'], 'male-female', 'probe', [['h87', 1]], { braid: 'probe', phase: 4.19, cm: 38 });
+  add('probeS', 'pink', ['mega', 'A8'], ['needleHdr', 'S'], 'male-female', 'probe', [['h87', 1]], { braid: 'probe', phase: 0, cm: 38 });
+  add('probeV', 'red', ['bus5V', 'p9'], ['needleHdr', '+'], 'male-female', 'probe', [['h87', 1]], { braid: 'probe', phase: 2.09, cm: 38 });
+  add('probeG', 'black', ['busGND', 'p9'], ['needleHdr', '-'], 'male-female', 'probe', [['h87', 1]], { braid: 'probe', phase: 4.19, cm: 38 });
 
   // steps 97 / 103: OD sensor module
   add('tslSDA', 'yellow', ['tsl', 'SDA'], ['mux', 'SD2'], 'female-female', 'towerN', [['h97', 0.1], ['h103', 1]], { cm: 33 });
@@ -113,11 +113,11 @@ export function wireSpecs() {
   add('tslVIN', 'red', ['tsl', 'VIN'], ['bus5V', 'p11'], 'female-male', 'towerN', [['h97', 0.1], ['h103', 1]], { cm: 25 });
   add('tslGND', 'black', ['tsl', 'GND'], ['busGND', 'p11'], 'female-male', 'towerN', [['h97', 0.1], ['h103', 1]], { cm: 25 });
   // steps 99-100 / 103: 940nm LED; marked wire = positive
-  add('odPos', 'white', ['odLed', '+'], ['ledCtl', 'ch0+'], 'solder-female', 'towerO', [['h100', 0.1], ['h103', 1]], { cm: 38, mark: true, leadA: 8, pair: 'od', phase: 0 });
-  add('odNeg', 'white', ['odLed', '-'], ['ledCtl', 'ch0-'], 'solder-female', 'towerO', [['h100', 0.1], ['h103', 1]], { cm: 38, leadA: 8, pair: 'od', phase: Math.PI });
+  add('odPos', 'white', ['odLed', '+'], ['ledCtl', 'ch0+'], 'solder-female', 'towerO', [['h100', 0.1], ['h103', 1]], { cm: 38, mark: true, markAt: 'h100', leadA: 8, pair: 'od', phase: 0, twistAt: 'h103' });
+  add('odNeg', 'white', ['odLed', '-'], ['ledCtl', 'ch0-'], 'solder-female', 'towerO', [['h100', 0.1], ['h103', 1]], { cm: 38, leadA: 8, pair: 'od', phase: Math.PI, twistAt: 'h103' });
   // steps 106-107 / 109: six-pack LEDs; marked wires to channel 1-6 positive pins
   ['yellow', 'orange', 'red', 'purple', 'blue', 'green'].forEach((c, i) => {
-    add(`six${i}M`, c, ['sixLed' + i, '+'], ['ledCtl', `ch${i + 1}+`], 'solder-female', 'towerP', [['h107', 0.1], ['h109', 1]], { cm: 32, mark: true, leadA: 9 });
+    add(`six${i}M`, c, ['sixLed' + i, '+'], ['ledCtl', `ch${i + 1}+`], 'solder-female', 'towerP', [['h107', 0.1], ['h109', 1]], { cm: 32, mark: true, markAt: 'h107', leadA: 9 });
     add(`six${i}U`, c, ['sixLed' + i, '-'], ['ledCtl', `ch${i + 1}-`], 'solder-female', 'towerP', [['h107', 0.1], ['h109', 1]], { cm: 32, leadA: 9 });
   });
   return W;
@@ -296,48 +296,74 @@ export function buildWires(parts, root, ctx = {}) {
   const housing = new THREE.BoxGeometry(2.6, 2.6, 13); housing.translate(0, 0, 6.5);
   const shrink = new THREE.CylinderGeometry(1.35, 1.35, 13, 10); shrink.rotateX(Math.PI / 2); shrink.translate(0, 0, 6.5);
   const tin = new THREE.CylinderGeometry(0.55, 0.55, 5, 6); tin.rotateX(Math.PI / 2); tin.translate(0, 0, -2.5);
+  const joint = new THREE.SphereGeometry(1.15, 10, 8);     // bare solder joint (no heat shrink in that step of the manual)
   const out = [];
   const byId = {};
+  const straightCurve = w => new THREE.CatmullRomCurve3(paths[w.id], false, 'centripetal', 0.5);
   for (const w of specs) {
     const grp = w.pair || w.braid;
     const g = new THREE.Group(); g.name = `${w.color} wire`;
     const mesh = new THREE.Mesh(new THREE.BufferGeometry(), wireMat(w.color)); mesh.castShadow = true; g.add(mesh);
+    // the part of a soldered wire that is not routed yet stays with it, coiled at its free end
+    const coilMesh = new THREE.Mesh(new THREE.BufferGeometry(), wireMat(w.color)); coilMesh.visible = false; g.add(coilMesh);
     const [ea, eb] = w.ends.split('-');
-    const endMesh = kind => kind === 'female' || kind === 'male' ? new THREE.Mesh(housing, M.header) : kind === 'solder' ? new THREE.Mesh(shrink, M.heatshrink) : kind === 'screw' ? new THREE.Mesh(tin, M.steel) : null;
+    const sh = w.shrink || '';
+    const endMesh = (kind, end) => kind === 'female' || kind === 'male' ? new THREE.Mesh(housing, M.header) : kind === 'solder' ? (sh.includes(end) ? new THREE.Mesh(shrink, M.heatshrink) : new THREE.Mesh(joint, M.steel)) : kind === 'screw' ? new THREE.Mesh(tin, M.steel) : null;
     const A = pinInfo(parts, w.a[0], w.a[1]);
     let Bp = pinInfo(parts, w.b[0], w.b[1]);
-    const place = (m, kind, P) => { if (!m) return; const back = kind === 'female' ? -6 : kind === 'male' ? 0 : kind === 'solder' ? -2 : 3; m.position.copy(P.p).addScaledVector(P.d, back); m.lookAt(m.position.clone().add(P.d)); };
-    const endA = endMesh(ea), endB = endMesh(eb);
-    place(endA, ea, A); place(endB, eb, Bp);
+    const place = (m, kind, P, end) => { if (!m) return; const back = kind === 'female' ? -6 : kind === 'male' ? 0 : kind === 'solder' ? (sh.includes(end) ? -2 : 0.3) : 3; m.position.copy(P.p).addScaledVector(P.d, back); m.lookAt(m.position.clone().add(P.d)); };
+    const endA = endMesh(ea, 'a'), endB = endMesh(eb, 'b');
+    place(endA, ea, A, 'a'); place(endB, eb, Bp, 'b');
     if (endA) g.add(endA); if (endB) g.add(endB);
     let markBand = null;
     if (w.mark) { markBand = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 6, 8), M.black); g.add(markBand); }
-    const ud = g.userData = { spec: w, curve: null, len: 0, tubular: 0, radial: 5, mesh, endA, endB, follow: w.a[0], partId: 'wire:' + w.id, f: 0 };
+    const ud = g.userData = { spec: w, curve: null, len: 0, tubular: 0, radial: 5, mesh, endA, endB, follow: w.a[0], partId: 'wire:' + w.id, f: 0, coilF: -1, markOn: !w.markAt, tw: !w.twistAt };
     ud.rebuild = (curve, endP) => {
       if (endP) Bp = endP;
       const len = curve.getLength(), tubular = Math.min(560, Math.max(10, Math.round(len / (grp ? 1.6 : 3))));
       mesh.geometry.dispose(); mesh.geometry = new THREE.TubeGeometry(curve, tubular, w.r || 0.85, 5, false);
-      Object.assign(ud, { curve, len, tubular });
-      if (markBand) { const u = Math.max(0, 1 - 22 / len); markBand.position.copy(curve.getPointAt(u)); markBand.quaternion.setFromUnitVectors(UPV, curve.getTangentAt(u)); }
+      Object.assign(ud, { curve, len, tubular }); ud.coilF = -1;
       ud.setGrow(ud.f, true);
+    };
+    const updateCoil = f => {
+      if (!(f > 0.001 && f < 0.995) || w.route === 'bridge' || w.route === 'probe') { coilMesh.visible = false; return null; }
+      if (coilMesh.visible && Math.abs(f - ud.coilF) < 0.004) return ud.coilEnd;
+      const rem = (1 - f) * ud.len, tip = ud.curve.getPointAt(f), tan = ud.curve.getTangentAt(f).normalize();
+      const n1 = new THREE.Vector3().crossVectors(tan, Math.abs(tan.y) < 0.9 ? UPV : V(1, 0, 0)).normalize(), n2 = new THREE.Vector3().crossVectors(tan, n1);
+      const R = 4.2 + (w.phase ? 1.7 : 0), pitch = 1.9, turns = rem / (2 * Math.PI * R), N = Math.max(10, Math.ceil(turns * 20));
+      const pts = []; for (let i = 0; i <= N; i++) { const th = i / N * turns * Math.PI * 2; pts.push(tip.clone().addScaledVector(tan, pitch * th / (Math.PI * 2)).addScaledVector(n1, R * Math.cos(th) - R).addScaledVector(n2, R * Math.sin(th))); }
+      const c = new THREE.CatmullRomCurve3(pts);
+      coilMesh.geometry.dispose(); coilMesh.geometry = new THREE.TubeGeometry(c, N, w.r || 0.85, 5, false); coilMesh.visible = true;
+      ud.coilF = f; ud.coilEnd = { p: c.getPointAt(1), t: c.getTangentAt(1) };
+      return ud.coilEnd;
     };
     ud.setGrow = (f, force) => {
       f = Math.max(0, Math.min(1, f)); if (f === ud.f && !force) return; ud.f = f;
       const k = Math.round(f * ud.tubular);
       mesh.geometry.setDrawRange(0, k * 5 * 6); g.visible = k > 0;
+      const ce = updateCoil(f);
       if (endA) endA.visible = f > 0;
-      if (endB) { endB.visible = (eb === 'female' || eb === 'male') ? f > 0.02 : f > 0.999; if (f < 0.999) { const u = Math.max(0.001, f), p = ud.curve.getPointAt(u), t = ud.curve.getTangentAt(u); endB.position.copy(p); endB.lookAt(p.clone().add(t)); } else place(endB, eb, Bp); }
-      if (markBand) markBand.visible = f > 0.95;
+      if (endB) {
+        endB.visible = (eb === 'female' || eb === 'male') ? f > 0.02 : f > 0.999;
+        if (f < 0.999) { const p = ce ? ce.p : ud.curve.getPointAt(Math.max(0.001, f)), t = ce ? ce.t : ud.curve.getTangentAt(Math.max(0.001, f)); endB.position.copy(p); endB.lookAt(p.clone().add(t)); } else place(endB, eb, Bp, 'b');
+      }
+      if (markBand) {
+        markBand.visible = ud.markOn && f > 0;
+        if (f >= 0.999 || !ce) { const u = Math.max(0, 1 - 22 / ud.len); markBand.position.copy(ud.curve.getPointAt(u)); markBand.quaternion.setFromUnitVectors(UPV, ud.curve.getTangentAt(u)); }
+        else { markBand.position.copy(ce.p).addScaledVector(ce.t, -14); markBand.quaternion.setFromUnitVectors(UPV, ce.t); }
+      }
     };
+    ud.setMark = on => { if (on !== ud.markOn) { ud.markOn = on; ud.setGrow(ud.f, true); } };
+    ud.setTwist = on => { if (on !== ud.tw && grp) { ud.tw = on; ud.rebuild(on ? curveFor(w) : straightCurve(w)); } };
     g.traverse(o => o.userData.partId = 'wire:' + w.id);
     root.add(g); out.push(g); byId[w.id] = g;
   }
-  for (const g of out) { g.userData.rebuild(curveFor(g.userData.spec)); g.userData.setGrow(0, true); }
+  for (const g of out) { const sp = g.userData.spec; g.userData.rebuild(sp.twistAt ? straightCurve(sp) : curveFor(sp)); g.userData.setGrow(0, true); }
 
   // the thermistor needle cable is re-laid whenever the needle moves (testing steps)
   const probeIds = specs.filter(w => w.route === 'probe').map(w => w.id);
   const probeHead = {}, probeLocal = {};
-  const needleInv = parts.thermoNeedle.obj.matrixWorld.clone().invert();
+  const needleInv = parts.needleHdr.obj.matrixWorld.clone().invert();
   for (const id of probeIds) {
     const pts = paths[id], k = pts.findIndex(p => p.y > 70 && p.z > -102);   // where the cable leaves Module E
     probeHead[id] = pts.slice(0, Math.max(3, k + 1));
