@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OpenEvo · Replacing the Pumps</title>
+<meta name="description" content="Replacing the DC peristaltic pump motors on an assembled OpenEVO Type D Mk4, step by step in 3D.">
+<meta property="og:title" content="OpenEvo · Replacing the Pumps">
+<meta property="og:description" content="Replacing the pump motors on an assembled OpenEVO Type D Mk4, step by step in 3D.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/pumps.css">
+<script type="importmap">{ "imports": { "three": "./vendor/three/three.module.js", "three/addons/": "./vendor/three/addons/" } }</script>
+</head>
+<body>
+<div id="app">
+  <canvas id="view" aria-label="3D view of the OpenEvo turbidostat"></canvas>
+  <div id="labels" aria-hidden="true"></div>
+
+  <header class="brand">
+    <div class="logo" aria-hidden="true">
+      <svg viewBox="0 0 40 40"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#14b8a6"/><stop offset="1" stop-color="#2563eb"/></linearGradient></defs>
+        <rect x="2" y="2" width="36" height="36" rx="10" fill="url(#lg)"/>
+        <path d="M15 9h10M17 9v8.5L11.5 28a3 3 0 0 0 2.6 4.5h11.8a3 3 0 0 0 2.6-4.5L23 17.5V9" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M13.6 25.5h12.8l1.9 3.3a1.6 1.6 0 0 1-1.4 2.4H13.1a1.6 1.6 0 0 1-1.4-2.4z" fill="#fff" opacity=".9"/></svg>
+    </div>
+    <div>
+      <h1>OpenEvo <span>Replacing the Pumps</span></h1>
+      <p>OpenEVO Type D Mk4 · assembled machine</p>
+    </div>
+  </header>
+
+  <div class="toolbar" role="toolbar" aria-label="View options">
+    <button data-tool="labels" class="on" title="Part labels (L)"><svg viewBox="0 0 24 24"><path d="M3 12V5a2 2 0 0 1 2-2h7l9 9-9 9-9-9z"/><circle cx="8" cy="8" r="1.6"/></svg><span>Labels</span></button>
+    <button data-tool="xray" title="X-ray printed parts (X)"><svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span>X-ray</span></button>
+    <button data-tool="wires" class="on" title="Show wiring (W)"><svg viewBox="0 0 24 24"><path d="M4 7c4 0 4 10 8 10s4-10 8-10"/><path d="M4 17c4 0 4-10 8-10s4 10 8 10" opacity=".55"/></svg><span>Wires</span></button>
+    <button data-tool="rotate" title="Auto-rotate"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg><span>Orbit</span></button>
+    <button data-tool="camera" title="Re-centre camera (R)"><svg viewBox="0 0 24 24"><path d="M3 9V5a2 2 0 0 1 2-2h4M15 3h4a2 2 0 0 1 2 2v4M21 15v4a2 2 0 0 1-2 2h-4M9 21H5a2 2 0 0 1-2-2v-4"/><circle cx="12" cy="12" r="3"/></svg><span>Focus</span></button>
+    <button data-tool="theme" title="Light / dark"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span>Theme</span></button>
+    <button data-tool="fullscreen" title="Fullscreen (F)"><svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg><span>Full</span></button>
+  </div>
+
+  <aside id="panel" aria-label="Pump replacement guide">
+    <button class="sheet-handle" aria-label="Expand or collapse the guide"><span></span></button>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="steps" class="active">Replacing the Pumps</button>
+      <button role="tab" data-tab="about">About</button>
+    </nav>
+    <section class="tab active" data-tab="steps">
+      <div id="pumpSel" class="pumpsel" role="group" aria-label="Pump to replace"></div>
+      <article id="stepCard" class="card"></article>
+      <div class="list-head">Contents</div>
+      <ol id="stepList" class="step-list"></ol>
+    </section>
+    <section class="tab" data-tab="about">
+      <div class="about">
+        <h2>Replacing the pumps</h2>
+        <p>The <i>OpenEVO Type D Mk4 Assembly Manual</i> has no procedure for replacing a pump on a finished machine. This page undoes and repeats the manual’s pump steps (Hardware Mounting 29, 30 and 69; Function Testing 1–5) on the machine as it stands at the end of the <a href="./">3D Assembly Manual</a>, with the moulds and other accessories put away. The firmware’s CALIBRATE PUMP menu takes the place of Function Testing 6–7.</p>
+        <p>Steps from the manual show its text word for word. Everything else is marked “Not in the manual”. That covers whole steps (powering off, taking the tubing and wires off, lifting the pump out, seating the new pump, saving the calibration) and short notes inside the manual’s steps. Notes on the firmware come from <i>easyEVOTypeD.ino</i> and <i>CONFIG.TXT</i> in the repository; LCD screens use the firmware’s own strings.</p>
+        <p>Differences from the 3D Assembly Manual model:</p>
+        <ul class="links">
+          <li>From the step 69 photo: each pump’s two wires sit in that pump’s own pair of Motor Shield terminals, with the GND hole between the M1 and M2 pairs (and between M3 and M4) empty.</li>
+          <li>From the Function Testing step 1 photo: the 60mm tube segments rise straight up from the pump nozzles, with the luer adapter’s barb in the tube.</li>
+          <li>Not in the manual: pump M2’s two segments (and M3’s, slightly) bend a few millimetres sideways at the nozzle, clear of the wires that drop between Modules C and G.</li>
+          <li>Not in the manual: the four braided pump wire pairs arch over the motherboard at slightly different heights, so they don’t pass through each other.</li>
+        </ul>
+        <p>The screwdriver is the only tool shown. Soldering is shown as the solder glowing, as in the 3D Assembly Manual.</p>
+        <h3>Sources</h3>
+        <ul class="links">
+          <li><a href="./">OpenEvo 3D Assembly Manual</a></li>
+          <li><a href="https://github.com/Binomica-Labs/OpenEVO" target="_blank" rel="noopener">GitHub · Binomica-Labs/OpenEVO</a></li>
+          <li><a href="https://doi.org/10.5281/zenodo.20694532" target="_blank" rel="noopener">Zenodo archive</a> (assembly manual, interface manual)</li>
+        </ul>
+        <h3>Keyboard</h3>
+        <table class="keys">
+          <tr><td><kbd>Space</kbd></td><td>Play / pause</td></tr>
+          <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Previous / next step</td></tr>
+          <tr><td><kbd>L</kbd> <kbd>X</kbd> <kbd>W</kbd></td><td>Labels · X-ray · Wires</td></tr>
+          <tr><td><kbd>R</kbd> <kbd>F</kbd></td><td>Re-centre camera · Fullscreen</td></tr>
+        </table>
+        <p class="credit">3D model by <b>Amanuel Geremew</b>.</p>
+      </div>
+    </section>
+  </aside>
+
+  <footer id="transport">
+    <div class="tp-buttons">
+      <button id="btnPrev" title="Previous step (←)" aria-label="Previous step"><svg viewBox="0 0 24 24"><path d="M6 5v14M19 5 9 12l10 7z"/></svg></button>
+      <button id="btnPlay" class="play" title="Play / pause (Space)" aria-label="Play"><svg class="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l13-7.5z"/></svg><svg class="i-pause" viewBox="0 0 24 24"><path d="M7 4h4v16H7zM14 4h4v16h-4z"/></svg></button>
+      <button id="btnNext" title="Next step (→)" aria-label="Next step"><svg viewBox="0 0 24 24"><path d="M18 5v14M5 5l10 7-10 7z"/></svg></button>
+    </div>
+    <div class="tp-main">
+      <div class="tp-meta"><span id="tpChapter" class="chip"></span><span id="tpTitle"></span><span id="tpTime" class="mono"></span></div>
+      <div id="timeline" class="timeline" role="slider" aria-label="Timeline" tabindex="0">
+        <div class="tl-track" id="tlTrack"></div>
+        <div class="tl-fill" id="tlFill"></div>
+        <div class="tl-head" id="tlHead"></div>
+        <div class="tl-hover" id="tlHover"></div>
+      </div>
+    </div>
+    <div class="tp-speed" role="group" aria-label="Playback speed">
+      <button data-speed="0.5">½×</button><button data-speed="1" class="on">1×</button><button data-speed="2">2×</button><button data-speed="4">4×</button>
+    </div>
+  </footer>
+
+  <div id="tooltip" role="tooltip"></div>
+  <div id="loader">
+    <div class="ld-box">
+      <div class="logo big"><svg viewBox="0 0 40 40"><rect x="2" y="2" width="36" height="36" rx="10" fill="#0d9488"/><path d="M15 9h10M17 9v8.5L11.5 28a3 3 0 0 0 2.6 4.5h11.8a3 3 0 0 0 2.6-4.5L23 17.5V9" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <h2>OpenEvo</h2>
+      <p id="ldText">Loading the STL files…</p>
+      <div class="ld-bar"><div id="ldFill"></div></div>
+    </div>
+  </div>
+  <noscript><p class="noscript">This interactive model needs JavaScript and WebGL.</p></noscript>
+</div>
+<script type="module" src="js/pumps/main.js"></script>
+</body>
+</html>
